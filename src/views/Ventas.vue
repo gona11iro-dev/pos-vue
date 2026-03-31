@@ -14,6 +14,24 @@
             @keyup.enter="agregarRapido"
           />
         </div>
+        <button class="btn-escanear" @click="mostrarScanner = true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Escanear
+        </button>
+      </div>
+
+      <!-- Scan feedback -->
+      <div v-if="scanMsg" class="scan-feedback" :class="scanMsgType">
+        <svg v-if="scanMsgType === 'success'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        {{ scanMsg }}
       </div>
 
       <div class="ventas-body">
@@ -107,24 +125,80 @@
         </div>
       </div>
     </div>
+
+    <BarcodeScanner
+      :visible="mostrarScanner"
+      @update:visible="mostrarScanner = $event"
+      @detected="onBarcodeDetected"
+    />
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
+import BarcodeScanner from '../components/BarcodeScanner.vue'
+import { useProductosStore } from '../stores/productos'
+
+const store = useProductosStore()
 
 const buscar = ref('')
+const mostrarScanner = ref(false)
+const scanMsg = ref('')
+const scanMsgType = ref('success')
+let scanMsgTimer = null
 
-const productos = ref([
+const productosDefault = [
   { barcode: '1', name: 'Coca', price: 18 },
   { barcode: '2', name: 'Sabritas', price: 16 },
   { barcode: '3', name: 'Pan', price: 22 },
   { barcode: '4', name: 'Leche', price: 25 },
   { barcode: '5', name: 'Agua', price: 12 }
-])
+]
+
+const productos = computed(() => {
+  if (store.productos.length > 0) {
+    return store.productos.map(p => ({
+      barcode: p.barcode,
+      name: p.name,
+      price: Number(p.price) || 0
+    }))
+  }
+  return productosDefault
+})
 
 const carrito = ref([])
+
+function mostrarFeedback(msg, type) {
+  scanMsg.value = msg
+  scanMsgType.value = type
+  if (scanMsgTimer) clearTimeout(scanMsgTimer)
+  scanMsgTimer = setTimeout(() => { scanMsg.value = '' }, 3000)
+}
+
+function onBarcodeDetected(code) {
+  mostrarScanner.value = false
+
+  const productoStore = store.buscarPorCodigo(code)
+  if (productoStore) {
+    agregar({
+      barcode: productoStore.barcode,
+      name: productoStore.name,
+      price: Number(productoStore.price) || 0
+    })
+    mostrarFeedback('Producto agregado: ' + productoStore.name, 'success')
+    return
+  }
+
+  const productoDefault = productosDefault.find(p => p.barcode === code)
+  if (productoDefault) {
+    agregar(productoDefault)
+    mostrarFeedback('Producto agregado: ' + productoDefault.name, 'success')
+    return
+  }
+
+  mostrarFeedback('Codigo "' + code + '" no encontrado. Registra el producto primero en Productos.', 'error')
+}
 
 function agregar(producto) {
   const existe = carrito.value.find(i => i.barcode === producto.barcode)
@@ -136,8 +210,9 @@ function agregar(producto) {
 }
 
 function agregarRapido() {
+  const q = buscar.value.toLowerCase()
   const p = productos.value.find(
-    p => p.name.toLowerCase().includes(buscar.value.toLowerCase())
+    p => p.name.toLowerCase().includes(q) || p.barcode.includes(buscar.value)
   )
   if (p) agregar(p)
   buscar.value = ''
@@ -181,10 +256,57 @@ function cancelar() {
 .ventas-header {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
   background: var(--card-bg);
   border-bottom: 1px solid var(--gray-200);
+}
+
+.btn-escanear {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-escanear:hover {
+  background: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.scan-feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-6);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  animation: fadeIn 0.2s ease;
+}
+
+.scan-feedback.success {
+  background: var(--success-light);
+  color: var(--success-dark);
+}
+
+.scan-feedback.error {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .ventas-header h1 {
