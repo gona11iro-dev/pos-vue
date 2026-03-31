@@ -1,18 +1,31 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { db } from '../database/db'
 
 export const useProductosStore = defineStore('productos', () => {
   const productos = ref([])
 
+  // Cargar productos desde Dexie al iniciar
+  async function cargarProductos() {
+    productos.value = await db.productos.toArray()
+  }
+
   const totalProductos = computed(() => productos.value.length)
 
-  function agregarProducto(producto) {
+  async function agregarProducto(producto) {
     const existe = productos.value.find(p => p.barcode === producto.barcode)
+    
     if (existe) {
       Object.assign(existe, producto)
+      // Actualizar en Dexie
+      await db.productos.put(existe)
       return false
     }
-    productos.value.push({ ...producto })
+    
+    const nuevoProducto = { ...producto }
+    productos.value.push(nuevoProducto)
+    // Guardar nuevo en Dexie
+    await db.productos.add(nuevoProducto)
     return true
   }
 
@@ -27,5 +40,8 @@ export const useProductosStore = defineStore('productos', () => {
     )
   }
 
-  return { productos, totalProductos, agregarProducto, buscarPorCodigo, buscarPorNombre }
+  // Llamar al inicio
+  cargarProductos()
+
+  return { productos, totalProductos, agregarProducto, buscarPorCodigo, buscarPorNombre, cargarProductos }
 })

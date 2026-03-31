@@ -139,8 +139,10 @@ import { ref, computed } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { useProductosStore } from '../stores/productos'
+import { useVentasStore } from '../stores/ventas'
 
-const store = useProductosStore()
+const productosStore = useProductosStore()
+const ventasStore = useVentasStore()
 
 const buscar = ref('')
 const mostrarScanner = ref(false)
@@ -148,23 +150,12 @@ const scanMsg = ref('')
 const scanMsgType = ref('success')
 let scanMsgTimer = null
 
-const productosDefault = [
-  { barcode: '1', name: 'Coca', price: 18 },
-  { barcode: '2', name: 'Sabritas', price: 16 },
-  { barcode: '3', name: 'Pan', price: 22 },
-  { barcode: '4', name: 'Leche', price: 25 },
-  { barcode: '5', name: 'Agua', price: 12 }
-]
-
 const productos = computed(() => {
-  if (store.productos.length > 0) {
-    return store.productos.map(p => ({
-      barcode: p.barcode,
-      name: p.name,
-      price: Number(p.price) || 0
-    }))
-  }
-  return productosDefault
+  return productosStore.productos.map(p => ({
+    barcode: p.barcode,
+    name: p.name,
+    price: Number(p.price) || 0
+  }))
 })
 
 const carrito = ref([])
@@ -179,7 +170,7 @@ function mostrarFeedback(msg, type) {
 function onBarcodeDetected(code) {
   mostrarScanner.value = false
 
-  const productoStore = store.buscarPorCodigo(code)
+  const productoStore = productosStore.buscarPorCodigo(code)
   if (productoStore) {
     agregar({
       barcode: productoStore.barcode,
@@ -187,13 +178,6 @@ function onBarcodeDetected(code) {
       price: Number(productoStore.price) || 0
     })
     mostrarFeedback('Producto agregado: ' + productoStore.name, 'success')
-    return
-  }
-
-  const productoDefault = productosDefault.find(p => p.barcode === code)
-  if (productoDefault) {
-    agregar(productoDefault)
-    mostrarFeedback('Producto agregado: ' + productoDefault.name, 'success')
     return
   }
 
@@ -235,9 +219,18 @@ const total = computed(() => {
   return carrito.value.reduce((t, i) => t + i.price * i.qty, 0)
 })
 
-function cobrar() {
-  alert('Venta realizada por $' + total.value.toFixed(2))
-  carrito.value = []
+async function cobrar() {
+  if (!carrito.value.length) return
+  
+  try {
+    const saleTotal = total.value
+    await ventasStore.registrarVenta(carrito.value, saleTotal)
+    mostrarFeedback(`Venta registrada exitosamente por $${saleTotal.toFixed(2)}`, 'success')
+    carrito.value = []
+  } catch (err) {
+    console.error(err)
+    mostrarFeedback('Ocurrió un error al registrar la venta.', 'error')
+  }
 }
 
 function cancelar() {
