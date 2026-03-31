@@ -10,7 +10,7 @@
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <span class="brand-name">Mi POS</span>
+        <span class="brand-name">Sutiprais</span>
       </div>
 
       <nav class="sidebar-nav">
