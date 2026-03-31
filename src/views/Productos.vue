@@ -19,12 +19,20 @@
           <div class="form-grid">
             <div class="input-group">
               <label for="barcode">Codigo de barras</label>
-              <input
-                id="barcode"
-                v-model="barcode"
-                type="text"
-                placeholder="Ej: 7501055303045"
-              />
+              <div class="input-with-action">
+                <input
+                  id="barcode"
+                  v-model="barcode"
+                  type="text"
+                  placeholder="Ej: 7501055303045"
+                />
+                <button class="btn-scan" type="button" @click="mostrarScanner = true" title="Escanear con camara">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="input-group">
@@ -112,23 +120,40 @@
         </div>
       </div>
     </div>
+
+    <BarcodeScanner
+      :visible="mostrarScanner"
+      @update:visible="mostrarScanner = $event"
+      @detected="onBarcodeDetected"
+    />
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
+import BarcodeScanner from '../components/BarcodeScanner.vue'
+import { useProductosStore } from '../stores/productos'
+
+const store = useProductosStore()
 
 const barcode = ref('')
 const name = ref('')
 const price = ref('')
 const stock = ref('')
-const productos = ref([])
+const mostrarScanner = ref(false)
+
+const productos = computed(() => store.productos)
+
+function onBarcodeDetected(code) {
+  barcode.value = code
+  mostrarScanner.value = false
+}
 
 function guardar() {
   if (!barcode.value.trim() || !name.value.trim()) return
 
-  productos.value.push({
+  store.agregarProducto({
     barcode: barcode.value.trim(),
     name: name.value.trim(),
     price: price.value.trim(),
@@ -249,6 +274,35 @@ function guardar() {
 .input-prefix input {
   padding-left: 28px;
   width: 100%;
+}
+
+.input-with-action {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input-with-action input {
+  flex: 1;
+}
+
+.btn-scan {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-scan:hover {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-guardar {
