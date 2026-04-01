@@ -20,28 +20,80 @@
           </div>
         </div>
 
-        <div class="inv-empty">
+        <div v-if="!productosFiltrados.length" class="inv-empty">
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
             <line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
           <p>Sin datos de inventario</p>
-          <span>Agrega productos desde la seccion de Productos para verlos aqui</span>
-          <button class="btn-ir-productos" @click="$router.push('/productos')">
+          <span v-if="buscar">No se encontraron productos para tu búsqueda</span>
+          <span v-else>Agrega productos desde la seccion de Productos para verlos aqui</span>
+          <button v-if="!buscar" class="btn-ir-productos" @click="$router.push('/productos')">
             Ir a productos
           </button>
         </div>
+
+        <table v-else class="products-table">
+          <thead>
+            <tr>
+              <th>Codigo</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Stock Actual</th>
+              <th>Ajustar Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in productosFiltrados" :key="p.barcode">
+              <td><code>{{ p.barcode }}</code></td>
+              <td class="td-name">{{ p.name }}</td>
+              <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
+              <td>
+                <span class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
+                  {{ p.stock }}
+                </span>
+              </td>
+              <td>
+                <div class="stock-adjust">
+                  <button class="btn-icon" @click="ajustarStock(p, -1)" title="Restar 1">-</button>
+                  <button class="btn-icon add" @click="ajustarStock(p, 1)" title="Sumar 1">+</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
+import { useProductosStore } from '../stores/productos'
 
+const store = useProductosStore()
 const buscar = ref('')
+
+const productosFiltrados = computed(() => {
+  if (!buscar.value) return store.productos
+  const b = buscar.value.toLowerCase()
+  return store.productos.filter(p => 
+    p.name.toLowerCase().includes(b) || p.barcode.includes(b)
+  )
+})
+
+async function ajustarStock(producto, variacion) {
+  const nuevoStock = Number(producto.stock) + variacion
+  // Usamos la misma función de agregarProducto porque esta automáticamente
+  // detecta si el barcode ya existe y realiza un update (put) en Dexie.
+  await store.agregarProducto({
+    ...producto,
+    stock: isNaN(nuevoStock) ? 0 : nuevoStock
+  })
+}
 </script>
 
 <style scoped>
@@ -149,5 +201,101 @@ const buscar = ref('')
 .btn-ir-productos:hover {
   background: var(--primary-dark);
   box-shadow: var(--shadow-md);
+}
+
+/* Table */
+.products-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.products-table thead th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.products-table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.products-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.products-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+  vertical-align: middle;
+}
+
+.td-name {
+  font-weight: 500;
+  color: var(--gray-800);
+}
+
+.td-price {
+  font-weight: 600;
+  color: var(--success);
+}
+
+code {
+  background: var(--gray-100);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+}
+
+.stock-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--success-light);
+  color: var(--success-dark);
+}
+
+.stock-low {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.stock-adjust {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid var(--gray-300);
+  background: white;
+  color: var(--gray-700);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-icon.add:hover {
+  background: var(--success-light);
+  border-color: var(--success);
+  color: var(--success-dark);
 }
 </style>
