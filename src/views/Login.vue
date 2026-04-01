@@ -9,7 +9,7 @@
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <h1>Mi POS</h1>
+        <h1>Surtiprais</h1>
         <p class="login-subtitle">Inicia sesion para continuar</p>
       </div>
 

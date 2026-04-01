@@ -18,6 +18,14 @@
               placeholder="Buscar en inventario..."
             />
           </div>
+          <button class="btn-export" @click="exportarInventario">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Exportar a Excel
+          </button>
         </div>
 
         <div v-if="!productosFiltrados.length" class="inv-empty">
@@ -73,6 +81,7 @@
 import { ref, computed } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useProductosStore } from '../stores/productos'
+import { exportToCsv } from '../utils/export'
 
 const store = useProductosStore()
 const buscar = ref('')
@@ -93,6 +102,19 @@ async function ajustarStock(producto, variacion) {
     ...producto,
     stock: isNaN(nuevoStock) ? 0 : nuevoStock
   })
+}
+
+function exportarInventario() {
+  if (!store.productos.length) {
+    alert("No hay productos para exportar.")
+    return
+  }
+
+  const columns = ['barcode', 'name', 'price', 'stock']
+  const headers = ['Código de Barras', 'Nombre del Producto', 'Precio ($)', 'Cantidad en Stock']
+  
+  const fecha = new Date().toISOString().slice(0, 10)
+  exportToCsv(store.productos, columns, headers, `inventario_surtiprais_${fecha}.csv`)
 }
 </script>
 
@@ -131,6 +153,27 @@ async function ajustarStock(producto, variacion) {
   position: relative;
   flex: 1;
   max-width: 320px;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  background: var(--success);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: auto;
+}
+
+.btn-export:hover {
+  background: var(--success-dark);
+  box-shadow: var(--shadow-md);
 }
 
 .search-icon {

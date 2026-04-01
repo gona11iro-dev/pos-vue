@@ -62,8 +62,14 @@ export const useVentasStore = defineStore('ventas', () => {
     return ticket
   }
 
+  // Realizar corte de caja (vaciar ventas actuales)
+  async function vaciarVentas() {
+    await db.ventas.clear()
+    ventas.value = []
+  }
+
   // Llamar al inicio
   cargarVentas()
 
-  return { ventas, registrarVenta, cargarVentas }
+  return { ventas, registrarVenta, cargarVentas, vaciarVentas }
 })

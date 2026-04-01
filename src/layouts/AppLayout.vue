@@ -78,6 +78,9 @@ const menuCompleto = [
 const menu = computed(() => {
   if (currentRole === 'cajero') {
     return menuCompleto.filter(item => item.to === '/ventas')
+  } else if (currentRole === 'admin') {
+    // Escondemos las ventas al admin para que se enfoque en administración
+    return menuCompleto.filter(item => item.to !== '/ventas')
   }
   return menuCompleto
 })
