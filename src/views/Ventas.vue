@@ -111,7 +111,7 @@
             </div>
 
             <div class="cart-actions">
-              <button class="btn-cobrar" :disabled="!carrito.length" @click="cobrar">
+              <button class="btn-cobrar" :disabled="!carrito.length" @click="abrirPagar">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -122,6 +122,70 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Pago -->
+    <div v-if="mostrarPagar" class="modal-overlay">
+      <div class="modal">
+        <h2>Detalles de Cobro</h2>
+
+        <div class="form-group">
+          <label>Cliente (Opcional)</label>
+          <input type="text" v-model="clienteNombre" placeholder="Público en general" class="input-modal" />
+        </div>
+
+        <div class="form-group">
+          <label>Total a Cobrar</label>
+          <div class="total-modal">${{ total.toFixed(2) }}</div>
+        </div>
+
+        <div class="form-group">
+          <label>Método de Pago</label>
+          <div class="method-buttons">
+            <button :class="['btn-method', metodoPago === 'Efectivo' ? 'active' : '']" @click="metodoPago = 'Efectivo'">
+              💵 Efectivo
+            </button>
+            <button :class="['btn-method', metodoPago === 'Tarjeta' ? 'active' : '']" @click="metodoPago = 'Tarjeta'">
+              💳 Tarjeta
+            </button>
+          </div>
+        </div>
+
+        <div v-if="metodoPago === 'Efectivo'" class="efectivo-section">
+          <label>Monto Recibido</label>
+          <div class="input-received-wrapper">
+            <span>$</span>
+            <input type="number" v-model="montoPagado" class="input-modal input-large" />
+            <button class="btn-clear" @click="montoPagado = 0">Borrar</button>
+          </div>
+          
+          <div class="quick-cash">
+            <button class="btn-cash exact" @click="montoPagado = total">Exacto</button>
+            <button class="btn-cash" @click="sumarMonto(1000)">$1000</button>
+            <button class="btn-cash" @click="sumarMonto(500)">$500</button>
+            <button class="btn-cash" @click="sumarMonto(200)">$200</button>
+            <button class="btn-cash" @click="sumarMonto(100)">$100</button>
+            <button class="btn-cash" @click="sumarMonto(50)">$50</button>
+            <button class="btn-cash" @click="sumarMonto(20)">$20</button>
+            <button class="btn-cash coin" @click="sumarMonto(10)">$10</button>
+            <button class="btn-cash coin" @click="sumarMonto(5)">$5</button>
+            <button class="btn-cash coin" @click="sumarMonto(2)">$2</button>
+            <button class="btn-cash coin" @click="sumarMonto(1)">$1</button>
+          </div>
+
+          <div class="cambio-box" :class="cambio < 0 ? 'cambio-falta' : 'cambio-ok'">
+            <span class="cambio-label">{{ cambio < 0 ? 'Falta cobrar:' : 'Cambio a devolver:' }}</span>
+            <span class="cambio-value">${{ Math.abs(cambio).toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-cancelar" @click="mostrarPagar = false">Cerrar</button>
+          <button class="btn-cobrar" :disabled="metodoPago === 'Efectivo' && cambio < 0" @click="cobrarFinal">
+            Finalizar Venta
+          </button>
         </div>
       </div>
     </div>
@@ -219,22 +283,54 @@ const total = computed(() => {
   return carrito.value.reduce((t, i) => t + i.price * i.qty, 0)
 })
 
-async function cobrar() {
+function cancelar() {
+  carrito.value = []
+}
+
+// Lógica de Cobro / Modal
+const mostrarPagar = ref(false)
+const clienteNombre = ref('')
+const metodoPago = ref('Efectivo')
+const montoPagado = ref(0)
+
+const cambio = computed(() => {
+  return montoPagado.value - total.value
+})
+
+function abrirPagar() {
   if (!carrito.value.length) return
-  
+  clienteNombre.value = ''
+  metodoPago.value = 'Efectivo'
+  montoPagado.value = total.value
+  mostrarPagar.value = true
+}
+
+function sumarMonto(cantidad) {
+  // Opcional: si el monto pagado actual fue el "exacto" default, al dar un botón lo reseteamos primero para facilitar.
+  if (montoPagado.value === total.value && cantidad !== 0) {
+    montoPagado.value = 0
+  }
+  montoPagado.value += cantidad
+}
+
+async function cobrarFinal() {
   try {
     const saleTotal = total.value
-    await ventasStore.registrarVenta(carrito.value, saleTotal)
-    mostrarFeedback(`Venta registrada exitosamente por $${saleTotal.toFixed(2)}`, 'success')
+    
+    await ventasStore.registrarVenta(carrito.value, saleTotal, {
+      client: clienteNombre.value,
+      method: metodoPago.value,
+      paidAmount: metodoPago.value === 'Efectivo' ? montoPagado.value : saleTotal,
+      change: metodoPago.value === 'Efectivo' ? cambio.value : 0
+    })
+    
+    mostrarFeedback(`Venta exitosa. Cambio dado: $${(metodoPago.value === 'Efectivo' ? cambio.value : 0).toFixed(2)}`, 'success')
     carrito.value = []
+    mostrarPagar.value = false
   } catch (err) {
     console.error(err)
     mostrarFeedback('Ocurrió un error al registrar la venta.', 'error')
   }
-}
-
-function cancelar() {
-  carrito.value = []
 }
 </script>
 
@@ -637,5 +733,222 @@ function cancelar() {
 .btn-cancelar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  color: var(--gray-700);
+}
+
+.input-modal {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-family: var(--font-family);
+}
+
+.input-large {
+  font-size: var(--text-xl);
+  font-weight: bold;
+}
+
+.total-modal {
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  color: var(--primary);
+  text-align: center;
+  padding: var(--space-2);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+}
+
+.method-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.btn-method {
+  padding: 12px;
+  border: 1px solid var(--gray-300);
+  background: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-method:hover {
+  background: var(--gray-50);
+}
+
+.btn-method.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.efectivo-section {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--gray-200);
+  margin-top: var(--space-4);
+}
+
+.input-received-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+
+.input-received-wrapper span {
+  position: absolute;
+  left: 12px;
+  font-size: var(--text-lg);
+  font-weight: bold;
+  color: var(--gray-500);
+}
+
+.input-received-wrapper input {
+  padding-left: 30px;
+}
+
+.btn-clear {
+  padding: 10px 16px;
+  border: 1px solid var(--gray-300);
+  background: var(--gray-100);
+  border-radius: var(--radius-md);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-clear:hover {
+  background: var(--gray-200);
+}
+
+.quick-cash {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  justify-content: center;
+}
+
+.btn-cash {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  color: #2e7d32;
+  font-weight: bold;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  flex: 1 1 calc(33% - 10px);
+  max-width: 100px;
+  min-width: 70px;
+}
+
+.btn-cash.coin {
+  background: #fff3e0;
+  border-color: #ffe0b2;
+  color: #e65100;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  flex: none;
+  min-width: auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-cash.exact {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-dark);
+  flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.btn-cash:hover {
+  filter: brightness(0.95);
+}
+
+.cambio-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+
+.cambio-ok {
+  background: var(--success-light);
+  color: var(--success-dark);
+  border: 1px solid var(--success);
+}
+
+.cambio-falta {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.cambio-label {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.cambio-value {
+  font-size: var(--text-2xl);
+  font-weight: bold;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
 }
 </style>

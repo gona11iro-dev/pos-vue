@@ -72,12 +72,16 @@ const msg = ref('')
 
 function login() {
   msg.value = ''
+  const u = user.value.trim().toLowerCase()
 
-  if (user.value.trim() === 'admin' && pass.value === '1234') {
+  if (u === 'admin' && pass.value === '1234') {
     sessionStorage.setItem('pos_session', 'admin')
     router.push('/dashboard')
+  } else if (u === 'cajero' && pass.value === '1234') {
+    sessionStorage.setItem('pos_session', 'cajero')
+    router.push('/ventas')
   } else {
-    msg.value = 'Usuario o contrasena incorrectos.'
+    msg.value = 'Usuario o contraseña incorrectos.'
   }
 }
 </script>

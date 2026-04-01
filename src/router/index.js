@@ -16,25 +16,25 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['admin'] },
   },
   {
     path: '/productos',
     name: 'productos',
     component: Productos,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['admin'] },
   },
   {
     path: '/ventas',
     name: 'ventas',
     component: Ventas,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
   },
   {
     path: '/inventario',
     name: 'inventario',
     component: Inventario,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['admin'] },
   },
 ]
 
@@ -44,10 +44,24 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const isLogged = sessionStorage.getItem('pos_session') === 'admin'
+  const role = sessionStorage.getItem('pos_session')
+  const isLogged = !!role
 
-  if (to.meta.requiresAuth && !isLogged) return '/'
-  if (to.name === 'login' && isLogged) return '/dashboard'
+  if (to.meta.requiresAuth && !isLogged) {
+    return '/'
+  }
+
+  if (to.meta.requiresAuth && isLogged) {
+    // Check role permission
+    if (to.meta.roles && !to.meta.roles.includes(role)) {
+      // Si no tiene permiso, lo mandamos a ventas (cajero) o si no hay fallback, nada.
+      return role === 'cajero' ? '/ventas' : '/dashboard'
+    }
+  }
+
+  if (to.name === 'login' && isLogged) {
+    return role === 'cajero' ? '/ventas' : '/dashboard'
+  }
 })
 
 export default router

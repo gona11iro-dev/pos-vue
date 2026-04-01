@@ -13,13 +13,17 @@ export const useVentasStore = defineStore('ventas', () => {
   }
 
   // Registrar una nueva venta
-  async function registrarVenta(carrito, total) {
+  async function registrarVenta(carrito, total, cobroData = {}) {
     if (!carrito.length) return false
 
     // 1. Crear el objeto ticket
     const ticket = {
       date: new Date().toISOString(),
       total: total,
+      client: cobroData.client || '',
+      method: cobroData.method || 'Efectivo',
+      paidAmount: cobroData.paidAmount || total,
+      change: cobroData.change || 0,
       items: carrito.map(item => ({
         barcode: item.barcode,
         name: item.name,
