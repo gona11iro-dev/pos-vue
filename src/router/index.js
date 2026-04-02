@@ -5,6 +5,8 @@ import Dashboard from '../views/Dashboard.vue'
 import Productos from '../views/Productos.vue'
 import Ventas from '../views/Ventas.vue'
 import Inventario from '../views/Inventario.vue'
+import Usuarios from '../views/Usuarios.vue'
+import BaseDatos from '../views/BaseDatos.vue'
 
 const routes = [
   {
@@ -28,12 +30,24 @@ const routes = [
     path: '/ventas',
     name: 'ventas',
     component: Ventas,
-    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
+    meta: { requiresAuth: true, roles: ['cajero'] },
   },
   {
     path: '/inventario',
     name: 'inventario',
     component: Inventario,
+    meta: { requiresAuth: true, roles: ['admin'] },
+  },
+  {
+    path: '/usuarios',
+    name: 'usuarios',
+    component: Usuarios,
+    meta: { requiresAuth: true, roles: ['admin'] },
+  },
+  {
+    path: '/base-datos',
+    name: 'base-datos',
+    component: BaseDatos,
     meta: { requiresAuth: true, roles: ['admin'] },
   },
 ]
@@ -43,22 +57,24 @@ const router = createRouter({
   routes,
 })
 
+// Guard de navegación
+// Lee sessionStorage directamente para ser compatible con el Pinia store
+// (ambos usan las mismas claves: pos_session, pos_user, pos_userId)
 router.beforeEach((to) => {
-  const role = sessionStorage.getItem('pos_session')
+  const role     = sessionStorage.getItem('pos_session') || ''
   const isLogged = !!role
 
-  if (to.meta.requiresAuth && !isLogged) {
-    return '/'
-  }
+  // Ruta protegida sin sesión → login
+  if (to.meta.requiresAuth && !isLogged) return '/'
 
+  // Ruta protegida con sesión pero sin el rol correcto → home del rol
   if (to.meta.requiresAuth && isLogged) {
-    // Check role permission
     if (to.meta.roles && !to.meta.roles.includes(role)) {
-      // Si no tiene permiso, lo mandamos a ventas (cajero) o si no hay fallback, nada.
       return role === 'cajero' ? '/ventas' : '/dashboard'
     }
   }
 
+  // Ya logueado intentando entrar al login → home del rol
   if (to.name === 'login' && isLogged) {
     return role === 'cajero' ? '/ventas' : '/dashboard'
   }

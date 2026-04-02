@@ -3,11 +3,11 @@
     <div class="productos-page">
       <div class="page-header">
         <h1>Productos</h1>
-        <p class="page-subtitle">Gestiona tu catalogo de productos</p>
+        <p class="page-subtitle">Gestiona tu catálogo de productos</p>
       </div>
 
       <div class="productos-layout">
-        <!-- Add product form -->
+        <!-- Formulario -->
         <div class="form-card card">
           <h2 class="form-title">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -17,16 +17,39 @@
           </h2>
 
           <div class="form-grid">
+            <!-- Tipo de venta -->
             <div class="input-group">
-              <label for="barcode">Codigo de barras</label>
+              <label>Tipo de venta</label>
+              <div class="unit-selector">
+                <button
+                  v-for="u in unidades"
+                  :key="u.value"
+                  type="button"
+                  class="unit-btn"
+                  :class="{ 'unit-btn--active': unit === u.value }"
+                  @click="unit = u.value"
+                >
+                  <span class="unit-emj">{{ u.emoji }}</span>
+                  {{ u.label }}
+                </button>
+              </div>
+              <p class="unit-hint">{{ unidadHint }}</p>
+            </div>
+
+            <!-- Código de barras (opcional para kg/g) -->
+            <div class="input-group">
+              <label for="barcode">
+                Código de barras
+                <span v-if="unit !== 'pza'" class="label-optional">(opcional)</span>
+              </label>
               <div class="input-with-action">
                 <input
                   id="barcode"
                   v-model="barcode"
                   type="text"
-                  placeholder="Ej: 7501055303045"
+                  :placeholder="unit !== 'pza' ? 'Dejar vacío para código automático' : 'Ej: 7501055303045'"
                 />
-                <button class="btn-scan" type="button" @click="mostrarScanner = true" title="Escanear con camara">
+                <button class="btn-scan" type="button" @click="mostrarScanner = true" title="Escanear con cámara">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
@@ -35,39 +58,43 @@
               </div>
             </div>
 
+            <!-- Nombre -->
             <div class="input-group">
-              <label for="name">Nombre</label>
+              <label for="name">Nombre del producto</label>
               <input
                 id="name"
                 v-model="name"
                 type="text"
-                placeholder="Ej: Coca-Cola 600ml"
+                :placeholder="unit === 'kg' ? 'Ej: Jitomate' : unit === 'g' ? 'Ej: Jamón de pavo' : 'Ej: Coca-Cola 600ml'"
               />
             </div>
 
+            <!-- Precio -->
             <div class="input-group">
-              <label for="price">Precio</label>
+              <label for="price">
+                Precio
+                <span class="label-unit">por {{ unidadLabel }}</span>
+              </label>
               <div class="input-prefix">
                 <span class="prefix">$</span>
-                <input
-                  id="price"
-                  v-model="price"
-                  type="text"
-                  placeholder="0.00"
-                />
+                <input id="price" v-model="price" type="number" step="0.01" min="0" placeholder="0.00" />
               </div>
             </div>
 
-            <div class="input-group">
-              <label for="stock">Stock</label>
-              <input
-                id="stock"
-                v-model="stock"
-                type="text"
-                placeholder="Ej: 50"
-              />
+            <!-- Stock (solo pza) -->
+            <div v-if="unit === 'pza'" class="input-group">
+              <label for="stock">Stock inicial</label>
+              <input id="stock" v-model="stock" type="number" min="0" placeholder="Ej: 50" />
+            </div>
+            <div v-else class="info-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Los productos por peso no llevan control de stock digital. Se gestiona físicamente.
             </div>
           </div>
+
+          <p v-if="errorForm" class="form-error">{{ errorForm }}</p>
 
           <button class="btn-guardar" @click="guardar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -77,19 +104,32 @@
           </button>
         </div>
 
-        <!-- Product list -->
+        <!-- Lista de productos -->
         <div class="product-list card">
-          <h2 class="form-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
-            </svg>
-            Lista de productos
-            <span v-if="productos.length" class="count-badge">{{ productos.length }}</span>
-          </h2>
+          <div class="list-header">
+            <h2 class="form-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+              </svg>
+              Lista de productos
+              <span v-if="productos.length" class="count-badge">{{ productos.length }}</span>
+            </h2>
+            <div class="filter-tabs">
+              <button
+                v-for="f in filtros"
+                :key="f.value"
+                class="filter-tab"
+                :class="{ 'filter-tab--active': filtroActivo === f.value }"
+                @click="filtroActivo = f.value"
+              >{{ f.label }}</button>
+            </div>
+          </div>
 
-          <div v-if="!productos.length" class="empty-state">
+          <div v-if="!productosFiltrados.length" class="empty-state">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+              <line x1="7" y1="7" x2="7.01" y2="7"/>
             </svg>
             <p>Sin productos</p>
             <span>Agrega tu primer producto con el formulario</span>
@@ -98,21 +138,28 @@
           <table v-else class="products-table">
             <thead>
               <tr>
-                <th>Codigo</th>
+                <th>Código</th>
                 <th>Nombre</th>
+                <th>Tipo</th>
                 <th>Precio</th>
                 <th>Stock</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="p in productos" :key="p.barcode">
-                <td><code>{{ p.barcode }}</code></td>
+              <tr v-for="p in productosFiltrados" :key="p.barcode">
+                <td><code :class="{ 'code-internal': p.barcode?.startsWith('INT-') }">{{ p.barcode?.startsWith('INT-') ? '— sin código' : p.barcode }}</code></td>
                 <td class="td-name">{{ p.name }}</td>
-                <td class="td-price">${{ p.price }}</td>
                 <td>
-                  <span class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
+                  <span class="unit-badge" :class="`unit-${p.unit || 'pza'}`">
+                    {{ unitLabel(p.unit) }}
+                  </span>
+                </td>
+                <td class="td-price">${{ Number(p.price).toFixed(2) }} / {{ unitLabel(p.unit) }}</td>
+                <td>
+                  <span v-if="!p.unit || p.unit === 'pza'" class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
                     {{ p.stock }}
                   </span>
+                  <span v-else class="stock-badge stock-na">—</span>
                 </td>
               </tr>
             </tbody>
@@ -138,12 +185,42 @@ import { useProductosStore } from '../stores/productos'
 const store = useProductosStore()
 
 const barcode = ref('')
-const name = ref('')
-const price = ref('')
-const stock = ref('')
+const name    = ref('')
+const price   = ref('')
+const stock   = ref('')
+const unit    = ref('pza')   // 'pza' | 'kg' | 'g'
+const errorForm   = ref('')
 const mostrarScanner = ref(false)
+const filtroActivo   = ref('todos')
+
+const unidades = [
+  { value: 'pza', label: 'Pieza', emoji: '📦' },
+  { value: 'kg',  label: 'Kilogramo', emoji: '⚖️' },
+]
+
+const filtros = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'pza',   label: 'Piezas' },
+  { value: 'kg',    label: 'Por kg' },
+]
+
+const unidadHint = computed(() => ({
+  pza: 'Productos con cantidad entera (refrescos, pan por pieza, jabón, etc.)',
+  kg:  'Productos que se pesan en kilogramos (frutas, verduras, queso, jamón)',
+})[unit.value])
+
+const unidadLabel = computed(() => unitLabel(unit.value))
+
+function unitLabel(u) {
+  return { pza: 'pieza', kg: 'kg' }[u || 'pza'] ?? 'pieza'
+}
 
 const productos = computed(() => store.productos)
+
+const productosFiltrados = computed(() => {
+  if (filtroActivo.value === 'todos') return productos.value
+  return productos.value.filter(p => (p.unit || 'pza') === filtroActivo.value)
+})
 
 function onBarcodeDetected(code) {
   barcode.value = code
@@ -151,273 +228,167 @@ function onBarcodeDetected(code) {
 }
 
 function guardar() {
-  if (!barcode.value.trim() || !name.value.trim()) return
+  errorForm.value = ''
+
+  if (!name.value.trim()) {
+    errorForm.value = 'El nombre del producto es obligatorio.'
+    return
+  }
+  if (!price.value || Number(price.value) <= 0) {
+    errorForm.value = 'Ingresa un precio válido.'
+    return
+  }
+  // Para pza, el barcode es obligatorio
+  if (unit.value === 'pza' && !barcode.value.trim()) {
+    errorForm.value = 'El código de barras es obligatorio para productos por pieza.'
+    return
+  }
+
+  // Si kg/g y no tiene código, generamos uno interno
+  const codigoFinal = barcode.value.trim() || `INT-${Date.now()}`
 
   store.agregarProducto({
-    barcode: barcode.value.trim(),
-    name: name.value.trim(),
-    price: price.value.trim(),
-    stock: stock.value.trim()
+    barcode: codigoFinal,
+    name:    name.value.trim(),
+    price:   price.value,
+    stock:   unit.value === 'pza' ? stock.value : '—',
+    unit:    unit.value,
   })
 
+  // Limpiar
   barcode.value = ''
-  name.value = ''
-  price.value = ''
-  stock.value = ''
+  name.value    = ''
+  price.value   = ''
+  stock.value   = ''
 }
 </script>
 
 <style scoped>
-.productos-page {
-  padding: var(--space-8);
-}
+.productos-page { padding: var(--space-8); }
 
-.page-header {
-  margin-bottom: var(--space-8);
-}
-
-.page-header h1 {
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  margin-bottom: var(--space-1);
-}
-
-.page-subtitle {
-  color: var(--gray-500);
-  font-size: var(--text-sm);
-}
+.page-header { margin-bottom: var(--space-8); }
+.page-header h1 { font-size: var(--text-2xl); font-weight: 700; margin-bottom: var(--space-1); }
+.page-subtitle { color: var(--gray-500); font-size: var(--text-sm); }
 
 .productos-layout {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 400px 1fr;
   gap: var(--space-6);
   align-items: start;
 }
 
-/* Form card */
-.form-card {
-  padding: var(--space-6);
-}
+/* Form */
+.form-card { padding: var(--space-6); }
+.form-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-lg); margin-bottom: var(--space-5); }
+.form-grid { display: flex; flex-direction: column; gap: var(--space-4); }
 
-.form-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-lg);
-  margin-bottom: var(--space-5);
+/* Unit selector */
+.unit-selector { display: flex; gap: var(--space-2); }
+.unit-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px; border: 2px solid var(--gray-200); border-radius: var(--radius-md);
+  background: var(--gray-50); color: var(--gray-600);
+  font-size: var(--text-xs); font-weight: 600; font-family: var(--font-family);
+  cursor: pointer; transition: all 0.15s;
 }
+.unit-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.unit-btn--active { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+.unit-emj { font-size: 1.25rem; }
+.unit-hint { font-size: var(--text-xs); color: var(--gray-400); margin-top: 2px; line-height: 1.4; }
 
-.count-badge {
-  background: var(--gray-200);
-  color: var(--gray-600);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-left: auto;
-}
+/* Labels */
+.label-optional { font-size: var(--text-xs); color: var(--gray-400); font-weight: 400; margin-left: 4px; }
+.label-unit { font-size: var(--text-xs); color: var(--primary); font-weight: 500; margin-left: 4px; }
 
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.input-group label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--gray-700);
-}
-
+/* Input group */
+.input-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.input-group label { font-size: var(--text-sm); font-weight: 500; color: var(--gray-700); }
 .input-group input {
-  padding: 10px 14px;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-family: var(--font-family);
-  color: var(--gray-800);
-  background: var(--gray-50);
-  outline: none;
-  transition: all var(--transition-fast);
+  padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: var(--radius-md);
+  font-size: var(--text-sm); font-family: var(--font-family); color: var(--gray-800);
+  background: var(--gray-50); outline: none; transition: all var(--transition-fast);
 }
+.input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); background: #fff; }
 
-.input-group input::placeholder {
-  color: var(--gray-400);
-}
+.input-prefix { position: relative; display: flex; align-items: center; }
+.prefix { position: absolute; left: 14px; color: var(--gray-500); font-weight: 500; pointer-events: none; }
+.input-prefix input { padding-left: 28px; width: 100%; }
 
-.input-group input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-light);
-  background: #fff;
-}
-
-.input-prefix {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.prefix {
-  position: absolute;
-  left: 14px;
-  color: var(--gray-500);
-  font-weight: 500;
-  pointer-events: none;
-}
-
-.input-prefix input {
-  padding-left: 28px;
-  width: 100%;
-}
-
-.input-with-action {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.input-with-action input {
-  flex: 1;
-}
+.input-with-action { display: flex; gap: var(--space-2); }
+.input-with-action input { flex: 1; }
 
 .btn-scan {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  min-width: 42px;
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-md);
-  background: var(--primary-light);
-  color: var(--primary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  display: flex; align-items: center; justify-content: center;
+  width: 42px; min-width: 42px;
+  border: 1px solid var(--primary); border-radius: var(--radius-md);
+  background: var(--primary-light); color: var(--primary);
+  cursor: pointer; transition: all var(--transition-fast);
+}
+.btn-scan:hover { background: var(--primary); color: #fff; }
+
+/* Info box */
+.info-box {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 14px; border-radius: var(--radius-md);
+  background: #eff6ff; color: #1d4ed8;
+  font-size: var(--text-xs); line-height: 1.5;
 }
 
-.btn-scan:hover {
-  background: var(--primary);
-  color: #fff;
-  box-shadow: var(--shadow-sm);
+.form-error {
+  padding: 8px 12px; border-radius: var(--radius-md);
+  background: var(--danger-light); color: var(--danger); font-size: var(--text-sm);
 }
 
 .btn-guardar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: 12px;
-  margin-top: var(--space-5);
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  font-family: var(--font-family);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  width: 100%; padding: 12px; margin-top: var(--space-5);
+  background: var(--primary); color: #fff; border: none;
+  border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600;
+  font-family: var(--font-family); cursor: pointer; transition: all var(--transition-fast);
 }
-
-.btn-guardar:hover {
-  background: var(--primary-dark);
-  box-shadow: var(--shadow-md);
-}
+.btn-guardar:hover { background: var(--primary-dark); box-shadow: var(--shadow-md); }
 
 /* Product list */
-.product-list {
-  padding: var(--space-6);
-}
+.product-list { padding: var(--space-6); }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-8);
-  color: var(--gray-400);
-  gap: var(--space-2);
-  text-align: center;
-}
+.list-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.list-header .form-title { margin-bottom: 0; }
 
-.empty-state p {
-  font-size: var(--text-lg);
-  font-weight: 500;
-  color: var(--gray-500);
+.filter-tabs { display: flex; gap: var(--space-1); }
+.filter-tab {
+  padding: 4px 12px; border: 1px solid var(--gray-200); border-radius: 999px;
+  background: transparent; color: var(--gray-500); font-size: var(--text-xs);
+  font-weight: 500; font-family: var(--font-family); cursor: pointer; transition: all 0.15s;
 }
+.filter-tab:hover { border-color: var(--primary); color: var(--primary); }
+.filter-tab--active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-.empty-state span {
-  font-size: var(--text-sm);
-}
+.count-badge { background: var(--gray-200); color: var(--gray-600); font-size: var(--text-xs); font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
 
 /* Table */
-.products-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
+.products-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.products-table thead th { text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--gray-200); }
+.products-table tbody tr { transition: background var(--transition-fast); }
+.products-table tbody tr:hover { background: var(--gray-50); }
+.products-table tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
 
-.products-table thead th {
-  text-align: left;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--gray-200);
-}
+.td-name  { font-weight: 500; color: var(--gray-800); }
+.td-price { font-weight: 600; color: var(--success); }
 
-.products-table tbody tr {
-  transition: background var(--transition-fast);
-}
+code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-size: var(--text-xs); color: var(--gray-600); }
+.code-internal { background: #fff7ed; color: #9a3412; }
 
-.products-table tbody tr:hover {
-  background: var(--gray-50);
-}
+.unit-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.unit-pza { background: #dbeafe; color: #1d4ed8; }
+.unit-kg  { background: #dcfce7; color: #15803d; }
+.unit-g   { background: #fef9c3; color: #854d0e; }
 
-.products-table tbody td {
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  border-bottom: 1px solid var(--gray-100);
-  color: var(--gray-700);
-}
+.stock-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: var(--text-xs); font-weight: 600; background: var(--success-light); color: var(--success-dark); }
+.stock-low { background: var(--danger-light); color: var(--danger); }
+.stock-na  { background: var(--gray-100); color: var(--gray-400); }
 
-.td-name {
-  font-weight: 500;
-  color: var(--gray-800);
-}
-
-.td-price {
-  font-weight: 600;
-  color: var(--success);
-}
-
-code {
-  background: var(--gray-100);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: var(--text-xs);
-  color: var(--gray-600);
-}
-
-.stock-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  background: var(--success-light);
-  color: var(--success-dark);
-}
-
-.stock-low {
-  background: var(--danger-light);
-  color: var(--danger);
-}
+/* Empty state */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); color: var(--gray-400); gap: var(--space-2); text-align: center; }
+.empty-state p { font-size: var(--text-lg); font-weight: 500; color: var(--gray-500); }
+.empty-state span { font-size: var(--text-sm); }
 </style>

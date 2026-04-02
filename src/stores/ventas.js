@@ -38,20 +38,16 @@ export const useVentasStore = defineStore('ventas', () => {
       const id = await db.ventas.add(ticket)
       ticket.id = id // guardar el id asignado
       
-      // Restar stock en la tabla de productos y el store de pinia
+      // Restar stock solo en productos tipo 'pza'; los kg/g no llevan stock digital
       for (const item of carrito) {
+        if (item.unit && item.unit !== 'pza') continue  // <- frutas, verduras, etc.
         const prod = await db.productos.get({ barcode: item.barcode })
         if (prod) {
           const nuevoStock = Number(prod.stock) - Number(item.qty)
-          // Prevenimos que baje a NaN u otro error de formato, pero dejamos que pase a negativo.
           prod.stock = isNaN(nuevoStock) ? prod.stock : nuevoStock
           await db.productos.put(prod)
-          
-          // Actualizar en el estado de Pinia
           const piniaProd = productosStore.productos.find(p => p.barcode === item.barcode)
-          if (piniaProd) {
-            piniaProd.stock = prod.stock
-          }
+          if (piniaProd) piniaProd.stock = prod.stock
         }
       }
     })

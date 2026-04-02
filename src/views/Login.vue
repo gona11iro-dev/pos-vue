@@ -50,8 +50,8 @@
           </div>
         </div>
 
-        <button class="login-btn" @click="login">
-          Entrar
+        <button class="login-btn" @click="login" :disabled="loading">
+          {{ loading ? 'Verificando...' : 'Entrar' }}
         </button>
 
         <p v-if="msg" class="error-msg">{{ msg }}</p>
@@ -63,25 +63,28 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
-const router = useRouter()
+const router   = useRouter()
+const auth     = useAuthStore()
 
-const user = ref('')
-const pass = ref('')
-const msg = ref('')
+const user     = ref('')
+const pass     = ref('')
+const msg      = ref('')
+const loading  = ref(false)
 
-function login() {
-  msg.value = ''
-  const u = user.value.trim().toLowerCase()
+async function login() {
+  msg.value     = ''
+  loading.value = true
 
-  if (u === 'admin' && pass.value === '1234') {
-    sessionStorage.setItem('pos_session', 'admin')
-    router.push('/dashboard')
-  } else if (u === 'cajero' && pass.value === '1234') {
-    sessionStorage.setItem('pos_session', 'cajero')
-    router.push('/ventas')
+  const result = await auth.login(user.value, pass.value)
+
+  loading.value = false
+
+  if (result.ok) {
+    router.push(auth.isAdmin ? '/dashboard' : '/ventas')
   } else {
-    msg.value = 'Usuario o contraseña incorrectos.'
+    msg.value = result.error
   }
 }
 </script>
