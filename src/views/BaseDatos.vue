@@ -268,7 +268,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
-import { db } from '../database/db'
+import { api } from '../api/client'
 import { exportToCsv, exportToJson, exportFullBackup } from '../utils/export'
 
 // ── Estado ────────────────────────────────────────────────
@@ -281,14 +281,19 @@ const busquedaVenta = ref('')
 const busquedaProd  = ref('')
 const ventaExpandida = ref(null)
 
-// ── Cargar datos ──────────────────────────────────────────
+// ── Cargar datos desde el Backend SQL ─────────────────────
 async function cargar() {
-  ventas.value    = await db.ventas.orderBy('date').reverse().toArray()
-  productos.value = await db.productos.toArray()
-  usuarios.value  = await db.usuarios.toArray()
+  try {
+    ventas.value    = await api.getVentas()
+    productos.value = await api.getProductos()
+    usuarios.value  = await api.getUsuarios()
+  } catch (e) {
+    console.error('[DB View] Error al cargar datos:', e)
+  }
 }
 
 onMounted(cargar)
+
 
 // ── Tabs config ───────────────────────────────────────────
 const tabs = computed(() => [

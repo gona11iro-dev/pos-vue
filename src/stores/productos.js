@@ -1,32 +1,38 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { db } from '../database/db'
+import { api } from '../api/client'
 
 export const useProductosStore = defineStore('productos', () => {
   const productos = ref([])
 
-  // Cargar productos desde Dexie al iniciar
+  // Cargar productos desde el Servidor SQL
   async function cargarProductos() {
-    productos.value = await db.productos.toArray()
+    try {
+      productos.value = await api.getProductos()
+    } catch (e) {
+      console.error('[Productos] Error al cargar:', e)
+    }
   }
 
   const totalProductos = computed(() => productos.value.length)
 
   async function agregarProducto(producto) {
-    const existe = productos.value.find(p => p.barcode === producto.barcode)
+    const existeIdx = productos.value.findIndex(p => p.barcode === producto.barcode)
     
-    if (existe) {
-      Object.assign(existe, producto)
-      // Actualizar en Dexie
-      await db.productos.put(existe)
-      return false
+    try {
+      await api.saveProducto(producto)
+      
+      if (existeIdx !== -1) {
+        productos.value[existeIdx] = { ...producto }
+        return false
+      } else {
+        productos.value.push({ ...producto })
+        return true
+      }
+    } catch (e) {
+      console.error('[Productos] Error al guardar:', e)
+      throw e
     }
-    
-    const nuevoProducto = { ...producto }
-    productos.value.push(nuevoProducto)
-    // Guardar nuevo en Dexie
-    await db.productos.add(nuevoProducto)
-    return true
   }
 
   function buscarPorCodigo(barcode) {
@@ -40,8 +46,24 @@ export const useProductosStore = defineStore('productos', () => {
     )
   }
 
+  async function eliminarProducto(barcode) {
+    try {
+      await api.deleteProducto(barcode)
+      productos.value = productos.value.filter(p => p.barcode !== barcode)
+    } catch (e) {
+      console.error('[Productos] Error al eliminar:', e)
+      throw e
+    }
+  }
+
   // Llamar al inicio
   cargarProductos()
 
-  return { productos, totalProductos, agregarProducto, buscarPorCodigo, buscarPorNombre, cargarProductos }
+  return { 
+    productos, totalProductos, 
+    agregarProducto, eliminarProducto, 
+    buscarPorCodigo, buscarPorNombre, 
+    cargarProductos 
+  }
 })
+

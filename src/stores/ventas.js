@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { db } from '../database/db'
+import { api } from '../api/client'
 import { useProductosStore } from './productos'
 
 export const useVentasStore = defineStore('ventas', () => {
@@ -9,14 +9,17 @@ export const useVentasStore = defineStore('ventas', () => {
 
   // Cargar las ventas al iniciar
   async function cargarVentas() {
-    ventas.value = await db.ventas.orderBy('date').reverse().toArray()
+    try {
+      ventas.value = await api.getVentas()
+    } catch (e) {
+      console.error('[Ventas] Error al cargar:', e)
+    }
   }
 
   // Registrar una nueva venta
   async function registrarVenta(carrito, total, cobroData = {}) {
     if (!carrito.length) return false
 
-    // 1. Crear el objeto ticket
     const ticket = {
       date: new Date().toISOString(),
       total: total,
@@ -32,35 +35,30 @@ export const useVentasStore = defineStore('ventas', () => {
       }))
     }
 
-    // 2. Transacción Dexie
-    await db.transaction('rw', db.ventas, db.productos, async () => {
-      // Guardar ticket en la tabla ventas
-      const id = await db.ventas.add(ticket)
-      ticket.id = id // guardar el id asignado
-      
-      // Restar stock solo en productos tipo 'pza'; los kg/g no llevan stock digital
+    try {
+      // El backend procesa la venta y el stock en una transacción SQL
+      const result = await api.registerVenta(ticket)
+      ticket.id = result.id
+
+      // Actualizar stock local en el store de productos para reflejar cambios sin recargar
       for (const item of carrito) {
-        if (item.unit && item.unit !== 'pza') continue  // <- frutas, verduras, etc.
-        const prod = await db.productos.get({ barcode: item.barcode })
-        if (prod) {
-          const nuevoStock = Number(prod.stock) - Number(item.qty)
-          prod.stock = isNaN(nuevoStock) ? prod.stock : nuevoStock
-          await db.productos.put(prod)
-          const piniaProd = productosStore.productos.find(p => p.barcode === item.barcode)
-          if (piniaProd) piniaProd.stock = prod.stock
+        const piniaProd = productosStore.productos.find(p => p.barcode === item.barcode)
+        if (piniaProd) {
+          piniaProd.stock = Number(piniaProd.stock) - Number(item.qty)
         }
       }
-    })
 
-    // 3. Agregar a memoria en las ventas para verlo reflejado en UI temporal si existe
-    ventas.value.unshift(ticket)
-
-    return ticket
+      ventas.value.unshift(ticket)
+      return ticket
+    } catch (e) {
+      console.error('[Ventas] Error al registrar:', e)
+      throw e
+    }
   }
 
-  // Realizar corte de caja (vaciar ventas actuales)
+  // El corte de caja ahora debería ser una función del backend si se desea persistir
   async function vaciarVentas() {
-    await db.ventas.clear()
+    // Por ahora lo dejamos local o podrías añadir un endpoint en el API
     ventas.value = []
   }
 
@@ -69,3 +67,4 @@ export const useVentasStore = defineStore('ventas', () => {
 
   return { ventas, registrarVenta, cargarVentas, vaciarVentas }
 })
+

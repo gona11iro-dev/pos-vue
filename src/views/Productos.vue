@@ -10,11 +10,16 @@
         <!-- Formulario -->
         <div class="form-card card">
           <h2 class="form-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg v-if="!isEditing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Agregar producto
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            {{ isEditing ? 'Editar producto' : 'Agregar producto' }}
           </h2>
+
+
 
           <div class="form-grid">
             <!-- Tipo de venta -->
@@ -43,12 +48,15 @@
                 <span v-if="unit !== 'pza'" class="label-optional">(opcional)</span>
               </label>
               <div class="input-with-action">
-                <input
-                  id="barcode"
-                  v-model="barcode"
-                  type="text"
-                  :placeholder="unit !== 'pza' ? 'Dejar vacío para código automático' : 'Ej: 7501055303045'"
-                />
+                  <input
+                    id="barcode"
+                    v-model="barcode"
+                    type="text"
+                    :disabled="isEditing"
+                    :class="{ 'input-readonly': isEditing }"
+                    :placeholder="unit !== 'pza' ? 'Dejar vacío para código automático' : 'Ej: 7501055303045'"
+                  />
+
                 <button class="btn-scan" type="button" @click="mostrarScanner = true" title="Escanear con cámara">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -96,13 +104,19 @@
 
           <p v-if="errorForm" class="form-error">{{ errorForm }}</p>
 
-          <button class="btn-guardar" @click="guardar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Guardar producto
-          </button>
+          <div class="form-actions-stack">
+            <button class="btn-guardar" @click="guardar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ isEditing ? 'Guardar cambios' : 'Guardar producto' }}
+            </button>
+            <button v-if="isEditing" class="btn-cancelar-edit" @click="cancelarEdicion">
+              Cancelar edición
+            </button>
+          </div>
         </div>
+
 
         <!-- Lista de productos -->
         <div class="product-list card">
@@ -143,6 +157,7 @@
                 <th>Tipo</th>
                 <th>Precio</th>
                 <th>Stock</th>
+                <th class="th-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -154,15 +169,30 @@
                     {{ unitLabel(p.unit) }}
                   </span>
                 </td>
-                <td class="td-price">${{ Number(p.price).toFixed(2) }} / {{ unitLabel(p.unit) }}</td>
+                <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
                 <td>
                   <span v-if="!p.unit || p.unit === 'pza'" class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
                     {{ p.stock }}
                   </span>
                   <span v-else class="stock-badge stock-na">—</span>
                 </td>
+                <td class="td-center">
+                  <div class="action-btns">
+                    <button class="btn-icon-act btn-edit" @click="editar(p)" title="Editar">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    <button class="btn-icon-act btn-delete" @click="confirmarEliminar(p.barcode)" title="Eliminar">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
+
           </table>
         </div>
       </div>
@@ -173,8 +203,27 @@
       @update:visible="mostrarScanner = $event"
       @detected="onBarcodeDetected"
     />
+
+    <!-- Modal Confirmar Eliminar -->
+    <Teleport to="body">
+      <div v-if="modalEliminar" class="modal-overlay" @click.self="modalEliminar = false">
+        <div class="modal-confirm">
+          <div class="modal-confirm-header">
+            <h3>¿Eliminar producto?</h3>
+          </div>
+          <p class="modal-confirm-body">
+            Esta acción eliminará permanentemente el producto del catálogo. ¿Deseas continuar?
+          </p>
+          <div class="modal-confirm-footer">
+            <button class="btn-cancelar" @click="modalEliminar = false">No, mantener</button>
+            <button class="btn-confirmar-borrar" @click="eliminar">Sí, eliminar</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
+
 
 <script setup>
 import { ref, computed } from 'vue'
@@ -192,6 +241,11 @@ const unit    = ref('pza')   // 'pza' | 'kg' | 'g'
 const errorForm   = ref('')
 const mostrarScanner = ref(false)
 const filtroActivo   = ref('todos')
+
+// ── CRUD Estado ──────────────────────────────────────────
+const isEditing = ref(false)
+const modalEliminar = ref(false)
+const barcodeAEliminar = ref(null)
 
 const unidades = [
   { value: 'pza', label: 'Pieza', emoji: '📦' },
@@ -227,7 +281,49 @@ function onBarcodeDetected(code) {
   mostrarScanner.value = false
 }
 
-function guardar() {
+// ── Acciones CRUD ────────────────────────────────────────
+
+function editar(p) {
+  isEditing.value = true
+  barcode.value = p.barcode
+  name.value    = p.name
+  price.value   = p.price
+  stock.value   = p.stock === '—' ? '' : p.stock
+  unit.value    = p.unit || 'pza'
+  errorForm.value = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function cancelarEdicion() {
+  isEditing.value = false
+  limpiarForm()
+}
+
+function limpiarForm() {
+  barcode.value = ''
+  name.value    = ''
+  price.value   = ''
+  stock.value   = ''
+  errorForm.value = ''
+}
+
+function confirmarEliminar(b) {
+  barcodeAEliminar.value = b
+  modalEliminar.value = true
+}
+
+async function eliminar() {
+  if (!barcodeAEliminar.value) return
+  try {
+    await store.eliminarProducto(barcodeAEliminar.value)
+    modalEliminar.value = false
+    barcodeAEliminar.value = null
+  } catch (e) {
+    alert('Error al eliminar producto')
+  }
+}
+
+async function guardar() {
   errorForm.value = ''
 
   if (!name.value.trim()) {
@@ -247,21 +343,23 @@ function guardar() {
   // Si kg/g y no tiene código, generamos uno interno
   const codigoFinal = barcode.value.trim() || `INT-${Date.now()}`
 
-  store.agregarProducto({
-    barcode: codigoFinal,
-    name:    name.value.trim(),
-    price:   price.value,
-    stock:   unit.value === 'pza' ? stock.value : '—',
-    unit:    unit.value,
-  })
-
-  // Limpiar
-  barcode.value = ''
-  name.value    = ''
-  price.value   = ''
-  stock.value   = ''
+  try {
+    await store.agregarProducto({
+      barcode: codigoFinal,
+      name:    name.value.trim(),
+      price:   price.value,
+      stock:   unit.value === 'pza' ? stock.value : '—',
+      unit:    unit.value,
+    })
+    
+    isEditing.value = false
+    limpiarForm()
+  } catch (e) {
+    errorForm.value = 'Error al guardar el producto.'
+  }
 }
 </script>
+
 
 <style scoped>
 .productos-page { padding: var(--space-8); }
@@ -339,14 +437,25 @@ function guardar() {
   background: var(--danger-light); color: var(--danger); font-size: var(--text-sm);
 }
 
+.form-actions-stack { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-5); }
+
 .btn-guardar {
   display: flex; align-items: center; justify-content: center; gap: var(--space-2);
-  width: 100%; padding: 12px; margin-top: var(--space-5);
+  width: 100%; padding: 12px;
   background: var(--primary); color: #fff; border: none;
   border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600;
   font-family: var(--font-family); cursor: pointer; transition: all var(--transition-fast);
 }
 .btn-guardar:hover { background: var(--primary-dark); box-shadow: var(--shadow-md); }
+
+.btn-cancelar-edit {
+  background: transparent; border: 1px solid var(--gray-300); color: var(--gray-500);
+  padding: 10px; border-radius: var(--radius-md); font-size: var(--text-xs);
+  font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.btn-cancelar-edit:hover { background: var(--gray-50); color: var(--gray-800); border-color: var(--gray-400); }
+
+.input-readonly { background: var(--gray-200) !important; color: var(--gray-500); cursor: not-allowed; }
 
 /* Product list */
 .product-list { padding: var(--space-6); }
@@ -372,8 +481,22 @@ function guardar() {
 .products-table tbody tr:hover { background: var(--gray-50); }
 .products-table tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-sm); border-bottom: 1px solid var(--gray-100); color: var(--gray-700); }
 
+.th-center { text-align: center !important; }
+.td-center { text-align: center; }
+
 .td-name  { font-weight: 500; color: var(--gray-800); }
 .td-price { font-weight: 600; color: var(--success); }
+
+.action-btns { display: flex; gap: 6px; justify-content: center; }
+.btn-icon-act {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: none; border-radius: 6px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-edit { background: #dbeafe; color: #1d4ed8; }
+.btn-edit:hover { background: #bfdbfe; }
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-delete:hover { background: #fecaca; }
 
 code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-size: var(--text-xs); color: var(--gray-600); }
 .code-internal { background: #fff7ed; color: #9a3412; }
@@ -391,4 +514,18 @@ code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-s
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); color: var(--gray-400); gap: var(--space-2); text-align: center; }
 .empty-state p { font-size: var(--text-lg); font-weight: 500; color: var(--gray-500); }
 .empty-state span { font-size: var(--text-sm); }
+
+/* Modales */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+.modal-confirm { background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 400px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); animation: modalIn 0.2s ease; }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+.modal-confirm-header h3 { font-size: var(--text-lg); font-weight: 700; color: var(--gray-800); margin-bottom: 12px; }
+.modal-confirm-body { font-size: var(--text-sm); color: var(--gray-500); line-height: 1.6; margin-bottom: 24px; }
+.modal-confirm-footer { display: flex; justify-content: flex-end; gap: var(--space-3); }
+
+.btn-cancelar { padding: 9px 18px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: #fff; color: var(--gray-500); font-weight: 600; cursor: pointer; }
+.btn-confirmar-borrar { padding: 9px 18px; border: none; border-radius: var(--radius-md); background: var(--danger); color: #fff; font-weight: 600; cursor: pointer; }
+.btn-confirmar-borrar:hover { background: #dc2626; }
 </style>
+
