@@ -10,7 +10,7 @@
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <span class="brand-name">Surtiprais</span>
+        <span class="brand-name">{{ brandName }}</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -36,8 +36,8 @@
           </div>
         </div>
 
-        <!-- Cambiar contraseña (solo cajero) -->
-        <button v-if="currentRole === 'cajero'" class="sidebar-action-btn" @click="abrirCambiarPass">
+        <!-- Cambiar contraseña (admin y cajero) -->
+        <button class="sidebar-action-btn" @click="abrirCambiarPass">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -106,12 +106,14 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const auth   = useAuthStore()
 
 const currentRole     = computed(() => auth.role)
 const currentUsername = computed(() => auth.username)
+const brandName       = computed(() => Capacitor.getPlatform() === 'android' ? 'Gudi' : 'Surtiprais')
 
 // ── Menú ─────────────────────────────────
 const menuCompleto = [
@@ -120,7 +122,7 @@ const menuCompleto = [
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'
   },
   {
-    to: '/ventas', label: 'Venta Nueva', roles: ['admin', 'cajero'],
+    to: '/ventas', label: 'Venta Nueva', roles: ['cajero'],
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>'
   },
   {
@@ -128,7 +130,7 @@ const menuCompleto = [
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
   },
   {
-    to: '/corte', label: 'Corte de Caja', roles: ['admin', 'cajero'],
+    to: '/corte', label: 'Corte de Caja', roles: ['admin'],
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
   },
   {

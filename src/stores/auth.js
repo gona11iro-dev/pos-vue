@@ -48,10 +48,19 @@ export const useAuthStore = defineStore('auth', () => {
     role.value     = ''
   }
 
+  async function cambiarPassword(passActual, passNueva) {
+    if (!passActual || !passNueva) return { ok: false, error: 'Campos vacíos' }
+    try {
+      await api.changePassword(username.value, passActual, passNueva)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: e.message }
+    }
+  }
+
   return {
     userId, username, role,
     isLoggedIn, isAdmin, isCajero,
-    login, logout,
+    login, logout, cambiarPassword,
   }
 })
-

@@ -32,7 +32,7 @@ const routes = [
     path: '/ventas',
     name: 'ventas',
     component: Ventas,
-    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
+    meta: { requiresAuth: true, roles: ['cajero'] },
   },
   {
     path: '/historial',
@@ -44,7 +44,7 @@ const routes = [
     path: '/corte',
     name: 'corte',
     component: CorteCaja,
-    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
+    meta: { requiresAuth: true, roles: ['admin'] },
   },
   {
     path: '/inventario',

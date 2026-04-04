@@ -173,6 +173,25 @@ app.delete('/api/usuarios/:id', (req, res) => {
   }
 });
 
+app.post('/api/auth/change-password', (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+  try {
+    const user = db.prepare('SELECT * FROM usuarios WHERE username = ? AND password = ?')
+      .get(username, currentPassword);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+    }
+
+    db.prepare('UPDATE usuarios SET password = ? WHERE id = ?')
+      .run(newPassword, user.id);
+    
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[PosServer] SQLite server running on http://localhost:${PORT}`);
 });

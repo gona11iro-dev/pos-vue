@@ -4,7 +4,7 @@
       <div class="page-header">
         <div>
           <h1>Usuarios</h1>
-          <p class="page-subtitle">Administra los cajeros del sistema</p>
+          <p class="page-subtitle">Administra los accesos al sistema {{ brandName }}</p>
         </div>
         <button class="btn-nuevo" @click="abrirModalCrear">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -197,6 +197,7 @@
 import { ref, computed, onMounted } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { api } from '../api/client'
+import { Capacitor } from '@capacitor/core'
 
 // ── Estado ──────────────────────────────────────────────
 const cajeros        = ref([])
@@ -208,6 +209,7 @@ const guardando      = ref(false)
 const errorModal     = ref('')
 const mostrarPass    = ref(false)
 const usuarioAEliminar = ref(null)
+const brandName      = computed(() => Capacitor.getPlatform() === 'android' ? 'Gudi' : 'Surtiprais')
 
 const form = ref({ username: '', password: '' })
 

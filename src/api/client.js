@@ -143,12 +143,24 @@ async function handleNativeRoute(endpoint, method, body) {
     return { success: true };
   }
 
+  if (endpoint === '/auth/change-password' && method === 'POST') {
+    const q = 'SELECT * FROM usuarios WHERE username = ? AND password = ?';
+    const rows = await native.nativeQuery(q, [body.username, body.currentPassword]);
+    
+    if (rows && rows.length > 0) {
+      await native.nativeRun('UPDATE usuarios SET password = ? WHERE id = ?', [body.newPassword, rows[0].id]);
+      return { success: true };
+    }
+    throw new Error('La contraseña actual es incorrecta');
+  }
+
   throw new Error(`Endpoint nativo no implementado: ${endpoint}`);
 }
 
 export const api = {
   // Auth
   login: (username, password) => apiFetch('/auth/login', { method: 'POST', body: { username, password } }),
+  changePassword: (username, currentPassword, newPassword) => apiFetch('/auth/change-password', { method: 'POST', body: { username, currentPassword, newPassword } }),
 
   // Productos
   getProductos: () => apiFetch('/productos'),

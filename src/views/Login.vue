@@ -9,7 +9,7 @@
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <h1>Surtiprais</h1>
+        <h1>{{ brandName }}</h1>
         <p class="login-subtitle">Inicia sesion para continuar</p>
       </div>
 
@@ -61,9 +61,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { Capacitor } from '@capacitor/core'
 
 const router   = useRouter()
 const auth     = useAuthStore()
@@ -72,6 +73,7 @@ const user     = ref('')
 const pass     = ref('')
 const msg      = ref('')
 const loading  = ref(false)
+const brandName = computed(() => Capacitor.getPlatform() === 'android' ? 'Gudi' : 'Surtiprais')
 
 async function login() {
   msg.value     = ''
