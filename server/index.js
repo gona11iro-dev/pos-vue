@@ -113,6 +113,34 @@ app.post('/api/ventas', (req, res) => {
   }
 });
 
+app.delete('/api/ventas/:id', (req, res) => {
+  const { id } = req.params;
+  
+  const transaction = db.transaction(() => {
+    // 1. Obtener items de la venta para devolver stock
+    const items = db.prepare('SELECT * FROM venta_items WHERE venta_id = ?').all(id);
+    
+    // 2. Devolver stock
+    const updateStock = db.prepare('UPDATE productos SET stock = stock + ? WHERE barcode = ?');
+    for (const item of items) {
+      updateStock.run(item.qty, item.barcode);
+    }
+
+    // 3. Borrar items y luego la venta
+    db.prepare('DELETE FROM venta_items WHERE venta_id = ?').run(id);
+    db.prepare('DELETE FROM ventas WHERE id = ?').run(id);
+    
+    return true;
+  });
+
+  try {
+    transaction();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Usuarios ──────────────────────────────────────────────────────
 app.get('/api/usuarios', (req, res) => {
   try {

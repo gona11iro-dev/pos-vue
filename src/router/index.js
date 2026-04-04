@@ -7,6 +7,8 @@ import Ventas from '../views/Ventas.vue'
 import Inventario from '../views/Inventario.vue'
 import Usuarios from '../views/Usuarios.vue'
 import BaseDatos from '../views/BaseDatos.vue'
+import HistorialVentas from '../views/HistorialVentas.vue'
+import CorteCaja from '../views/CorteCaja.vue'
 
 const routes = [
   {
@@ -30,7 +32,19 @@ const routes = [
     path: '/ventas',
     name: 'ventas',
     component: Ventas,
-    meta: { requiresAuth: true, roles: ['cajero'] },
+    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
+  },
+  {
+    path: '/historial',
+    name: 'historial',
+    component: HistorialVentas,
+    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
+  },
+  {
+    path: '/corte',
+    name: 'corte',
+    component: CorteCaja,
+    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
   },
   {
     path: '/inventario',

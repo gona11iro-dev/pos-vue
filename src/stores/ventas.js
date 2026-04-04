@@ -55,16 +55,32 @@ export const useVentasStore = defineStore('ventas', () => {
       throw e
     }
   }
-
+ 
+  // Eliminar una venta (Solo Admin)
+  async function eliminarVenta(id) {
+    try {
+      await api.deleteVenta(id)
+      ventas.value = ventas.value.filter(v => v.id !== id)
+      
+      // El stock se actualiza en el backend, por lo que una recarga 
+      // de productos podría ser necesaria si el usuario está en Inventario.
+      // Pero para este flujo, el estado de ventas ya quedó limpio.
+      return true
+    } catch (e) {
+      console.error('[Ventas] Error al eliminar:', e)
+      throw e
+    }
+  }
+ 
   // El corte de caja ahora debería ser una función del backend si se desea persistir
   async function vaciarVentas() {
     // Por ahora lo dejamos local o podrías añadir un endpoint en el API
     ventas.value = []
   }
-
+ 
   // Llamar al inicio
   cargarVentas()
-
-  return { ventas, registrarVenta, cargarVentas, vaciarVentas }
+ 
+  return { ventas, registrarVenta, cargarVentas, vaciarVentas, eliminarVenta }
 })
 
