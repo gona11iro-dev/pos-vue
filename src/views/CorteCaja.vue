@@ -117,11 +117,11 @@ const resumen = computed(() => {
     total: 0,
     efectivo: 0,
     tarjeta: 0,
-    count: ventasHoy.length,
+    count: ventasActivas.length,
     productos: {}
   }
 
-  ventasHoy.forEach(v => {
+  ventasActivas.forEach(v => {
     stats.total += Number(v.total)
     if (v.method === 'Efectivo') stats.efectivo += Number(v.total)
     else stats.tarjeta += Number(v.total)
@@ -162,6 +162,15 @@ function descargarCorte() {
 .header h1 { font-size: var(--text-3xl); font-weight: 800; color: var(--gray-900); }
 .subtitle { color: var(--primary); font-weight: 600; text-transform: capitalize; margin-top: 4px; }
 
+.actions { display: flex; gap: 10px; }
+.btn-corte { 
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px; background: var(--danger); color: #fff;
+  border: none; border-radius: var(--radius-md); font-weight: 800;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-corte:hover { background: #b91c1c; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
 .actions .btn-download {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 20px; background: var(--success); color: #fff;
@@ -200,4 +209,5 @@ function descargarCorte() {
 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--gray-50); }
+
 </style>

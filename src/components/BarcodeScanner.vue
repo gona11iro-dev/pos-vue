@@ -8,13 +8,20 @@
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
               <circle cx="12" cy="13" r="4"/>
             </svg>
-            Escanear codigo de barras
+            Escanear
           </h3>
-          <button class="btn-close" @click="cerrar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div class="header-actions">
+            <button v-if="hasMultipleCameras" class="btn-switch-camera" @click="cambiarCamara" title="Cambiar cámara">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
+            <button class="btn-close" @click="cerrar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="scanner-body">
@@ -66,20 +73,41 @@ const emit = defineEmits(['update:visible', 'detected'])
 const readerEl = ref(null)
 const error = ref('')
 const ultimoCodigo = ref('')
+const hasMultipleCameras = ref(false)
+const manualFacingMode = ref('environment') // 'environment' or 'user'
 
 let html5Qrcode = null
+
+async function checkCameras() {
+  try {
+    const devices = await Html5Qrcode.getCameras()
+    hasMultipleCameras.value = devices && devices.length > 1
+  } catch (err) {
+    console.warn('No se pudo obtener la lista de cámaras:', err)
+  }
+}
 
 async function iniciarEscaner() {
   error.value = ''
   ultimoCodigo.value = ''
 
   await nextTick()
+  if (!hasMultipleCameras.value) {
+    await checkCameras()
+  }
 
   try {
-    html5Qrcode = new Html5Qrcode('barcode-reader')
+    if (!html5Qrcode) {
+      html5Qrcode = new Html5Qrcode('barcode-reader')
+    }
+
+    // Stop if already running (for camera switch)
+    if (html5Qrcode.getState() === 2) {
+      await html5Qrcode.stop()
+    }
 
     await html5Qrcode.start(
-      { facingMode: 'environment' },
+      { facingMode: manualFacingMode.value },
       {
         fps: 10,
         qrbox: { width: 280, height: 160 },
@@ -142,6 +170,11 @@ async function detenerEscaner() {
     }
     html5Qrcode = null
   }
+}
+
+async function cambiarCamara() {
+  manualFacingMode.value = manualFacingMode.value === 'environment' ? 'user' : 'environment'
+  await iniciarEscaner()
 }
 
 function cerrar() {
@@ -232,6 +265,31 @@ onBeforeUnmount(() => {
 .btn-close:hover {
   background: var(--gray-100, #f3f4f6);
   color: var(--gray-800, #1f2937);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-switch-camera {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-switch-camera:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
 }
 
 .scanner-body {

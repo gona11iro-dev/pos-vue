@@ -149,51 +149,52 @@
             <span>Agrega tu primer producto con el formulario</span>
           </div>
 
-          <table v-else class="products-table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th>Precio</th>
-                <th>Stock</th>
-                <th class="th-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in productosFiltrados" :key="p.barcode">
-                <td><code :class="{ 'code-internal': p.barcode?.startsWith('INT-') }">{{ p.barcode?.startsWith('INT-') ? '— sin código' : p.barcode }}</code></td>
-                <td class="td-name">{{ p.name }}</td>
-                <td>
-                  <span class="unit-badge" :class="`unit-${p.unit || 'pza'}`">
-                    {{ unitLabel(p.unit) }}
-                  </span>
-                </td>
-                <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
-                <td>
-                  <span v-if="!p.unit || p.unit === 'pza'" class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
-                    {{ p.stock }}
-                  </span>
-                  <span v-else class="stock-badge stock-na">—</span>
-                </td>
-                <td class="td-center">
-                  <div class="action-btns">
-                    <button class="btn-icon-act btn-edit" @click="editar(p)" title="Editar">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                    </button>
-                    <button class="btn-icon-act btn-delete" @click="confirmarEliminar(p.barcode)" title="Eliminar">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-
-          </table>
+          <div v-else class="table-responsive">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Precio</th>
+                  <th>Stock</th>
+                  <th class="th-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in productosFiltrados" :key="p.barcode">
+                  <td><code :class="{ 'code-internal': p.barcode?.startsWith('INT-') }">{{ p.barcode?.startsWith('INT-') ? '— sin código' : p.barcode }}</code></td>
+                  <td class="td-name">{{ p.name }}</td>
+                  <td>
+                    <span class="unit-badge" :class="`unit-${p.unit || 'pza'}`">
+                      {{ unitLabel(p.unit) }}
+                    </span>
+                  </td>
+                  <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
+                  <td>
+                    <span v-if="!p.unit || p.unit === 'pza'" class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
+                      {{ p.stock }}
+                    </span>
+                    <span v-else class="stock-badge stock-na">—</span>
+                  </td>
+                  <td class="td-center">
+                    <div class="action-btns">
+                      <button class="btn-icon-act btn-edit" @click="editar(p)" title="Editar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button class="btn-icon-act btn-delete" @click="confirmarEliminar(p.barcode)" title="Eliminar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -527,5 +528,16 @@ code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-s
 .btn-cancelar { padding: 9px 18px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: #fff; color: var(--gray-500); font-weight: 600; cursor: pointer; }
 .btn-confirmar-borrar { padding: 9px 18px; border: none; border-radius: var(--radius-md); background: var(--danger); color: #fff; font-weight: 600; cursor: pointer; }
 .btn-confirmar-borrar:hover { background: #dc2626; }
+
+.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 768px) {
+  .productos-page { padding: var(--space-4); }
+  .productos-layout { grid-template-columns: 1fr; }
+  .list-header { flex-direction: column; align-items: stretch; }
+  .filter-tabs { overflow-x: auto; padding-bottom: 8px; }
+  .filter-tab { white-space: nowrap; }
+  .products-table { min-width: 700px; }
+}
 </style>
 

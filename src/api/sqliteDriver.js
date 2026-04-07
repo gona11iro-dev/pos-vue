@@ -78,6 +78,7 @@ export async function initNativeDB() {
       );
     `;
     await db.execute(schema);
+    
     console.log('[NativeDB] Esquema verificado/creado.');
 
     // 5. Crear usuario admin por defecto si no hay usuarios
@@ -103,7 +104,7 @@ export async function initNativeDB() {
 export async function nativeQuery(sql, params = []) {
   if (!db) await initNativeDB();
   const res = await db.query(sql, params);
-  return res.values;
+  return res.values || [];
 }
 
 /**

@@ -5,6 +5,19 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi POS</title>
+    <!-- Gudi Global Error Handler -->
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        alert("CRITICAL ERROR: " + message + " at " + source + ":" + lineno + ":" + colno);
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason) {
+           alert("PROMISE CRASH: " + (event.reason.message ? event.reason.message : JSON.stringify(event.reason)));
+        } else {
+           alert("PROMISE REJECTED without reason");
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="app"></div>

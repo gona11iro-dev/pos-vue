@@ -8,7 +8,7 @@ export const useProductosStore = defineStore('productos', () => {
   // Cargar productos desde el Servidor SQL
   async function cargarProductos() {
     try {
-      productos.value = await api.getProductos()
+      productos.value = await api.getProductos() || []
     } catch (e) {
       console.error('[Productos] Error al cargar:', e)
     }
@@ -36,7 +36,9 @@ export const useProductosStore = defineStore('productos', () => {
   }
 
   function buscarPorCodigo(barcode) {
-    return productos.value.find(p => p.barcode === barcode) || null
+    if (!barcode) return null
+    const codeStr = String(barcode).trim()
+    return productos.value.find(p => String(p.barcode).trim() === codeStr) || null
   }
 
   function buscarPorNombre(query) {

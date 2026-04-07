@@ -10,7 +10,7 @@ export const useVentasStore = defineStore('ventas', () => {
   // Cargar las ventas al iniciar
   async function cargarVentas() {
     try {
-      ventas.value = await api.getVentas()
+      ventas.value = await api.getVentas() || []
     } catch (e) {
       console.error('[Ventas] Error al cargar:', e)
     }

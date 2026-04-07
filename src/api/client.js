@@ -70,11 +70,14 @@ async function handleNativeRoute(endpoint, method, body) {
 
   // Productos
   if (endpoint === '/productos' && method === 'GET') {
-    return await native.nativeQuery('SELECT * FROM productos');
+    const rows = await native.nativeQuery('SELECT * FROM productos');
+    // Asegurar que el barcode sea String al salir de la DB
+    return (rows || []).map(r => ({ ...r, barcode: String(r.barcode) }));
   }
   if (endpoint === '/productos' && method === 'POST') {
     const sql = `INSERT OR REPLACE INTO productos (barcode, name, price, stock, unit) VALUES (?, ?, ?, ?, ?)`;
-    await native.nativeRun(sql, [body.barcode, body.name, body.price, body.stock, body.unit]);
+    const b = body;
+    await native.nativeRun(sql, [String(b.barcode).trim(), b.name, b.price, b.stock, b.unit]);
     return { success: true };
   }
   if (endpoint.startsWith('/productos/') && method === 'DELETE') {
@@ -102,13 +105,14 @@ async function handleNativeRoute(endpoint, method, body) {
     const ventaId = resVenta.changes.lastId;
 
     for (let item of body.items) {
+      const bcode = String(item.barcode).trim();
       await native.nativeRun(
         'INSERT INTO venta_items (venta_id, barcode, name, price, qty) VALUES (?, ?, ?, ?, ?)',
-        [ventaId, item.barcode, item.name, item.price, item.qty]
+        [ventaId, bcode, item.name, item.price, item.qty]
       );
       // Actualizar stock si es por pieza
       if (item.unit === 'pza' || !item.unit) {
-        await native.nativeRun('UPDATE productos SET stock = stock - ? WHERE barcode = ?', [item.qty, item.barcode]);
+        await native.nativeRun('UPDATE productos SET stock = stock - ? WHERE barcode = ?', [item.qty, bcode]);
       }
     }
     return { success: true, id: ventaId };
@@ -170,7 +174,6 @@ export const api = {
   // Ventas
   getVentas: () => apiFetch('/ventas'),
   registerVenta: (ventaData) => apiFetch('/ventas', { method: 'POST', body: ventaData }),
-
   deleteVenta: (id) => apiFetch(`/ventas/${id}`, { method: 'DELETE' }),
   
   // Usuarios

@@ -42,35 +42,37 @@
           </button>
         </div>
 
-        <table v-else class="products-table">
-          <thead>
-            <tr>
-              <th>Codigo</th>
-              <th>Nombre</th>
-              <th>Precio</th>
-              <th>Stock Actual</th>
-              <th>Ajustar Stock</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in productosFiltrados" :key="p.barcode">
-              <td><code>{{ p.barcode }}</code></td>
-              <td class="td-name">{{ p.name }}</td>
-              <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
-              <td>
-                <span class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
-                  {{ p.stock }}
-                </span>
-              </td>
-              <td>
-                <div class="stock-adjust">
-                  <button class="btn-icon" @click="ajustarStock(p, -1)" title="Restar 1">-</button>
-                  <button class="btn-icon add" @click="ajustarStock(p, 1)" title="Sumar 1">+</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="table-responsive">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>Codigo</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Stock Actual</th>
+                <th>Ajustar Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in productosFiltrados" :key="p.barcode">
+                <td><code>{{ p.barcode }}</code></td>
+                <td class="td-name">{{ p.name }}</td>
+                <td class="td-price">${{ Number(p.price).toFixed(2) }}</td>
+                <td>
+                  <span class="stock-badge" :class="{ 'stock-low': Number(p.stock) < 10 }">
+                    {{ p.stock }}
+                  </span>
+                </td>
+                <td>
+                  <div class="stock-adjust">
+                    <button class="btn-icon" @click="ajustarStock(p, -1)" title="Restar 1">-</button>
+                    <button class="btn-icon add" @click="ajustarStock(p, 1)" title="Sumar 1">+</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
       </div>
     </div>
@@ -340,5 +342,19 @@ code {
   background: var(--success-light);
   border-color: var(--success);
   color: var(--success-dark);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .inventario-page { padding: var(--space-4); }
+  .inv-header { flex-direction: column; align-items: stretch; }
+  .inv-search { max-width: none; }
+  .btn-export { margin-left: 0; justify-content: center; }
+  .products-table { min-width: 600px; }
 }
 </style>

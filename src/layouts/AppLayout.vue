@@ -1,14 +1,51 @@
 <template>
-  <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
+  <div class="app-layout" :class="{ 'is-mobile-view': isMobileView }">
+    <!-- Top Navbar for mobile (minimalist) -->
+    <header v-if="isMobileView" class="mobile-top-navbar">
+      <div class="top-navbar-left">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </div>
+      <h1 class="top-navbar-title">{{ currentRole === 'admin' ? 'Admin' : 'Cajero' }}</h1>
+      <div class="top-navbar-right">
+        <div class="mobile-user-avatar" @click="showUserMenu = true">
+          {{ currentUsername ? currentUsername.charAt(0).toUpperCase() : 'U' }}
+        </div>
+      </div>
+    </header>
+
+    <!-- Menú Desplegable Móvil -->
+    <div v-if="showUserMenu && isMobileView" class="mobile-menu-overlay" @click="showUserMenu = false">
+      <div class="mobile-dropdown" @click.stop>
+        <div class="m-drop-header">
+          <strong>{{ currentUsername }}</strong>
+          <span>{{ currentRole === 'admin' ? 'Administrador' : 'Cajero' }}</span>
+        </div>
+        <button class="m-drop-btn" @click="abrirCambiarPass(); showUserMenu = false">🔑 Cambiar Contraseña</button>
+        <button class="m-drop-btn text-danger" @click="logout(); showUserMenu = false">🚪 Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation for mobile -->
+    <nav v-if="isMobileView" class="bottom-nav">
+      <router-link
+        v-for="item in mobileMenuItems"
+        :key="item.to"
+        :to="item.to"
+        class="bottom-nav-item"
+        active-class="bottom-nav-item--active"
+      >
+        <span class="bottom-nav-icon" v-html="item.icon"></span>
+        <span class="bottom-nav-label">{{ item.label }}</span>
+      </router-link>
+    </nav>
+
+    <!-- Desktop Sidebar (Hidden on Mobile) -->
+    <aside v-if="!isMobileView" class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /></svg>
         </div>
         <span class="brand-name">{{ brandName }}</span>
       </div>
@@ -27,31 +64,9 @@
       </nav>
 
       <div class="sidebar-footer">
-        <!-- Pill de usuario -->
-        <div class="user-pill">
-          <div class="user-avatar-sm">{{ currentUsername.charAt(0).toUpperCase() }}</div>
-          <div class="user-info">
-            <span class="user-display">{{ currentUsername }}</span>
-            <span class="user-role-badge">{{ currentRole === 'admin' ? 'Administrador' : 'Cajero' }}</span>
-          </div>
-        </div>
-
-        <!-- Cambiar contraseña (admin y cajero) -->
-        <button class="sidebar-action-btn" @click="abrirCambiarPass">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          <span>Cambiar contraseña</span>
-        </button>
-
         <button class="logout-btn" @click="logout">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span>Cerrar sesion</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /></svg>
+          <span>Cerrar sesión</span>
         </button>
       </div>
     </aside>
@@ -111,9 +126,46 @@ import { Capacitor } from '@capacitor/core'
 const router = useRouter()
 const auth   = useAuthStore()
 
+const windowWidth = ref(window.innerWidth)
+const showUserMenu = ref(false)
+
 const currentRole     = computed(() => auth.role)
 const currentUsername = computed(() => auth.username)
-const brandName       = computed(() => Capacitor.getPlatform() === 'android' ? 'Gudi' : 'Surtiprais')
+const brandName       = computed(() => Capacitor.getPlatform() !== 'web' ? 'Gudi' : 'Surtiprais')
+
+const isMobileView = computed(() => {
+  // Mobile detection: 
+  // 1. Screen size (<= 1024px to include tablets) 
+  // 2. Native platforms (Android/iOS)
+  const isSmallScreen = windowWidth.value <= 1024
+  const isNativeApp   = Capacitor.getPlatform() !== 'web'
+  return isSmallScreen || isNativeApp
+})
+
+// Actualizar el ancho de ventana al redimensionar
+window.addEventListener('resize', () => {
+  windowWidth.value = window.innerWidth
+})
+
+// Menú móvil (bottom nav) simplificado
+const mobileMenuItems = computed(() => {
+  if (currentRole.value === 'admin') {
+    return [
+      { to: '/dashboard', label: 'Inicio', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
+      { to: '/historial', label: 'Historial', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
+      { to: '/corte', label: 'Corte', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12A10 10 0 0015 21v-9z"/><path d="M12 2A10 10 0 0012 22"/><path d="M15 3A10 10 0 0115 21"/></svg>' },
+      { to: '/productos', label: 'Productos', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>' },
+      { to: '/inventario', label: 'Inventario', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>' },
+      { to: '/usuarios', label: 'Usuarios', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>' },
+      { to: '/base-datos', label: 'Datos', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
+    ]
+  } else {
+    return [
+      { to: '/ventas', label: 'Hacer Venta', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+      { to: '/historial', label: 'Historial de Venta', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+    ]
+  }
+})
 
 // ── Menú ─────────────────────────────────
 const menuCompleto = [
@@ -218,8 +270,9 @@ async function cambiarPassword() {
   flex-direction: column;
   position: fixed;
   top: 0; left: 0; bottom: 0;
-  z-index: 100;
+  z-index: 1000;
   overflow-y: auto;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-brand {
@@ -229,6 +282,15 @@ async function cambiarPassword() {
   padding: var(--space-6) var(--space-5);
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.sidebar-close-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  margin-left: auto;
+  cursor: pointer;
+}
+
 .brand-icon {
   width: 40px; height: 40px;
   background: var(--primary);
@@ -241,83 +303,89 @@ async function cambiarPassword() {
   color: #fff; letter-spacing: -0.02em;
 }
 
-/* Navigation */
-.sidebar-nav {
-  flex: 1;
-  padding: var(--space-4) var(--space-3);
-  display: flex; flex-direction: column;
-  gap: var(--space-1);
+/* Top Navbar for mobile (Original Colors) */
+.mobile-top-navbar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--sidebar-bg); /* Original dark gray */
+  color: #fff;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  border-bottom: 2px solid var(--primary); /* Original blue line */
 }
-.nav-item {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  color: var(--sidebar-text);
-  font-size: var(--text-sm); font-weight: 500;
+
+.top-navbar-title { font-size: 1.1rem; font-weight: 700; color: #fff; }
+.mobile-user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; color: #fff; cursor: pointer; }
+
+/* Menú dropdown móvil */
+.mobile-menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: flex; justify-content: flex-end; padding-top: 65px; padding-right: 15px; }
+.mobile-dropdown { background: #fff; width: 220px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: popIn 0.2s ease; display: flex; flex-direction: column; }
+.m-drop-header { padding: 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+.m-drop-header strong { color: #0f172a; font-size: 1rem; }
+.m-drop-header span { color: #64748b; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+.m-drop-btn { padding: 15px; text-align: left; background: #fff; border: none; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #334155; font-size: 0.95rem; display: flex; gap: 10px; align-items: center; }
+.m-drop-btn.text-danger { color: #ef4444; border-bottom: none; }
+
+/* Bottom Nav (Original Colors/Shape - WITH SCROLLING) */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 65px;
+  background: #ffffff; /* Clean white for mobile */
+  color: var(--gray-600);
+  align-items: center;
+  justify-content: flex-start; /* Permite que los elementos se acumulen desde la izquierda */
+  padding: 0 10px;
+  z-index: 1000;
+  box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+  border-top: 1px solid var(--gray-200);
+  
+  /* Habilitar Scorll horizontal Táctil */
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none; /* Firefox */
+  -webkit-overflow-scrolling: touch; /* Smoother scrolling iOS */
+}
+
+/* Ocultar barra de scroll para limpiar diseño en Chrome/Safari */
+.bottom-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: inherit;
   text-decoration: none;
-  transition: all var(--transition-fast);
-  cursor: pointer;
-}
-.nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.nav-item--active { background: var(--primary) !important; color: #fff !important; }
-.nav-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; flex-shrink: 0;
-}
-
-/* Sidebar footer */
-.sidebar-footer {
-  padding: var(--space-3);
-  border-top: 1px solid rgba(255,255,255,0.08);
-  display: flex; flex-direction: column; gap: var(--space-2);
+  font-size: 0.70rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  
+  /* Comportamiento al scrollear */
+  flex: 0 0 auto; /* Importante para que no se compriman */
+  min-width: 75px; 
+  height: 100%;
 }
 
-/* User pill */
-.user-pill {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-2);
-}
-.user-avatar-sm {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff; font-weight: 700; font-size: var(--text-sm);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.user-info { display: flex; flex-direction: column; min-width: 0; }
-.user-display {
-  font-size: var(--text-sm); font-weight: 600;
-  color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.user-role-badge {
-  font-size: 10px; font-weight: 500;
-  color: rgba(255,255,255,0.5);
-}
+.bottom-nav-item--active { color: var(--primary); font-weight: 700; }
+.bottom-nav-icon { color: inherit; }
 
-/* Sidebar action button */
-.sidebar-action-btn {
-  display: flex; align-items: center; gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: none; border-radius: var(--radius-md);
-  background: transparent; color: var(--gray-400);
-  font-size: var(--text-sm); font-weight: 500;
-  cursor: pointer; transition: all var(--transition-fast);
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 950;
 }
-.sidebar-action-btn:hover {
-  background: rgba(255,255,255,0.08); color: #fff;
-}
-
-.logout-btn {
-  display: flex; align-items: center; gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: none; border-radius: var(--radius-md);
-  background: transparent; color: var(--gray-400);
-  font-size: var(--text-sm); font-weight: 500;
-  cursor: pointer; transition: all var(--transition-fast);
-}
-.logout-btn:hover { background: rgba(220,38,38,0.15); color: #fca5a5; }
 
 /* ── Main Content ─────────────────────── */
 .main-content {
@@ -325,6 +393,41 @@ async function cambiarPassword() {
   margin-left: var(--sidebar-width);
   background: var(--content-bg);
   min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* ── Responsive adjustments ───────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 280px;
+    transform: translateX(-100%);
+  }
+
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-close-btn {
+    display: block;
+  }
+
+  .mobile-top-navbar {
+    display: flex;
+  }
+
+  .bottom-nav {
+    display: flex;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px;
+    padding-bottom: 70px;
+  }
 }
 
 /* ── Modal ────────────────────────────── */
