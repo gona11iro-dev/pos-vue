@@ -79,22 +79,24 @@
       <div class="tables-section">
         <div class="card table-card">
           <h2>Productos Vendidos Hoy</h2>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th class="text-right">Cantidad</th>
-                <th class="text-right">Venta Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in resumen.productos" :key="p.barcode">
-                <td>{{ p.name }}</td>
-                <td class="text-right">{{ p.qty.toFixed(2) }}</td>
-                <td class="text-right">${{ p.total.toFixed(2) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="report-table-wrap">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-right">Cantidad</th>
+                  <th class="text-right">Venta Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in resumen.productos" :key="p.barcode">
+                  <td>{{ p.name }}</td>
+                  <td class="text-right">{{ p.qty.toFixed(2) }}</td>
+                  <td class="text-right">${{ p.total.toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -194,7 +196,7 @@ async function guardarCorteDiario() {
 </script>
 
 <style scoped>
-.corte-caja { padding: var(--space-6); background: var(--content-bg); min-height: 100vh; }
+.corte-caja { padding: var(--space-6); background: var(--content-bg); min-height: 100%; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8); }
 .header h1 { font-size: var(--text-3xl); font-weight: 800; color: var(--gray-900); }
 .subtitle { color: var(--primary); font-weight: 600; text-transform: capitalize; margin-top: 4px; }
@@ -241,6 +243,7 @@ async function guardarCorteDiario() {
 .tables-section { max-width: 900px; margin: 0 auto; }
 .table-card { padding: var(--space-6); }
 .table-card h2 { font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-5); color: var(--gray-800); }
+.report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .report-table { width: 100%; border-collapse: collapse; }
 .report-table th { text-align: left; padding: 12px; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-500); border-bottom: 2px solid var(--gray-50); }
@@ -249,5 +252,28 @@ async function guardarCorteDiario() {
 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--gray-50); }
+
+@media (max-width: 1080px) {
+  .corte-caja { padding: var(--space-6); }
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions > button {
+    flex: 1 1 220px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .corte-caja { padding: var(--space-4); }
+  .report-table { min-width: 520px; }
+}
 
 </style>

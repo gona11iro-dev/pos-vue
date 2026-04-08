@@ -149,6 +149,54 @@
             <span>Agrega tu primer producto con el formulario</span>
           </div>
 
+          <div v-else-if="isMobileCardsView" class="mobile-products-list">
+            <article v-for="p in productosFiltrados" :key="p.barcode" class="product-mobile-card">
+              <div class="product-mobile-card__head">
+                <div class="product-mobile-card__copy">
+                  <strong>{{ p.name }}</strong>
+                  <code :class="{ 'code-internal': p.barcode?.startsWith('INT-') }">
+                    {{ p.barcode?.startsWith('INT-') ? '— sin código' : p.barcode }}
+                  </code>
+                </div>
+                <span class="unit-badge" :class="`unit-${p.unit || 'pza'}`">
+                  {{ unitLabel(p.unit) }}
+                </span>
+              </div>
+
+              <div class="product-mobile-card__meta">
+                <div class="mobile-meta-chip">
+                  <span>Precio</span>
+                  <strong>${{ Number(p.price).toFixed(2) }}</strong>
+                </div>
+                <div class="mobile-meta-chip">
+                  <span>Stock</span>
+                  <strong v-if="!p.unit || p.unit === 'pza'">{{ p.stock }}</strong>
+                  <strong v-else>—</strong>
+                </div>
+              </div>
+
+              <div class="product-mobile-card__footer">
+                <span
+                  v-if="!p.unit || p.unit === 'pza'"
+                  class="stock-badge"
+                  :class="{ 'stock-low': Number(p.stock) < 10 }"
+                >
+                  {{ Number(p.stock) < 10 ? 'Stock bajo' : 'Disponible' }}
+                </span>
+                <span v-else class="stock-badge stock-na">Sin stock digital</span>
+
+                <div class="product-mobile-card__actions">
+                  <button class="mobile-action-btn mobile-action-btn--edit" @click="editar(p)">
+                    Editar
+                  </button>
+                  <button class="mobile-action-btn mobile-action-btn--delete" @click="confirmarEliminar(p.barcode)">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+
           <div v-else class="table-responsive">
             <table class="products-table">
               <thead>
@@ -227,7 +275,7 @@
 
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { useProductosStore } from '../stores/productos'
@@ -242,6 +290,7 @@ const unit    = ref('pza')   // 'pza' | 'kg' | 'g'
 const errorForm   = ref('')
 const mostrarScanner = ref(false)
 const filtroActivo   = ref('todos')
+const windowWidth = ref(window.innerWidth)
 
 // ── CRUD Estado ──────────────────────────────────────────
 const isEditing = ref(false)
@@ -271,6 +320,7 @@ function unitLabel(u) {
 }
 
 const productos = computed(() => store.productos)
+const isMobileCardsView = computed(() => windowWidth.value <= 820)
 
 const productosFiltrados = computed(() => {
   if (filtroActivo.value === 'todos') return productos.value
@@ -280,6 +330,10 @@ const productosFiltrados = computed(() => {
 function onBarcodeDetected(code) {
   barcode.value = code
   mostrarScanner.value = false
+}
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
 }
 
 // ── Acciones CRUD ────────────────────────────────────────
@@ -359,6 +413,14 @@ async function guardar() {
     errorForm.value = 'Error al guardar el producto.'
   }
 }
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 
@@ -475,6 +537,95 @@ async function guardar() {
 
 .count-badge { background: var(--gray-200); color: var(--gray-600); font-size: var(--text-xs); font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
 
+.mobile-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.product-mobile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.product-mobile-card__head,
+.product-mobile-card__footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-mobile-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.product-mobile-card__copy strong {
+  color: var(--gray-900);
+  font-size: var(--text-base);
+  line-height: 1.35;
+}
+
+.product-mobile-card__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-meta-chip {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.mobile-meta-chip span {
+  display: block;
+  color: var(--gray-500);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mobile-meta-chip strong {
+  color: var(--gray-900);
+  font-size: var(--text-base);
+  font-weight: 800;
+}
+
+.product-mobile-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mobile-action-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mobile-action-btn--edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.mobile-action-btn--delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 /* Table */
 .products-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .products-table thead th { text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--gray-200); }
@@ -531,6 +682,74 @@ code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-s
 
 .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+@media (max-width: 1360px) {
+  .productos-layout { grid-template-columns: 340px 1fr; }
+}
+
+@media (max-width: 1080px) {
+  .productos-page { padding: var(--space-6); }
+  .productos-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .page-header {
+    margin-bottom: var(--space-6);
+  }
+
+  .form-card,
+  .product-list {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .form-title {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-4);
+  }
+
+  .unit-selector {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .input-with-action {
+    align-items: stretch;
+  }
+
+  .btn-scan {
+    min-height: 44px;
+  }
+
+  .list-header {
+    align-items: stretch;
+  }
+
+  .filter-tabs {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .filter-tab {
+    white-space: nowrap;
+  }
+
+  .product-mobile-card__head,
+  .product-mobile-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .product-mobile-card__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .productos-page { padding: var(--space-4); }
   .productos-layout { grid-template-columns: 1fr; }
@@ -539,5 +758,18 @@ code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-s
   .filter-tab { white-space: nowrap; }
   .products-table { min-width: 700px; }
 }
-</style>
 
+@media (max-width: 520px) {
+  .product-mobile-card {
+    padding: 14px;
+  }
+
+  .product-mobile-card__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .product-mobile-card__actions {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

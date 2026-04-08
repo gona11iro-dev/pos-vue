@@ -55,46 +55,48 @@
           <span>{{ busqueda ? 'Prueba con otro nombre' : 'Crea el primer cajero con el botón superior' }}</span>
         </div>
 
-        <table v-else class="usuarios-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Usuario</th>
-              <th>Rol</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(u, i) in cajerosFiltrados" :key="u.id">
-              <td class="td-num">{{ i + 1 }}</td>
-              <td>
-                <div class="user-cell">
-                  <div class="user-avatar">{{ u.username.charAt(0).toUpperCase() }}</div>
-                  <span class="user-name">{{ u.username }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="role-badge role-cajero">Cajero</span>
-              </td>
-              <td>
-                <div class="acciones">
-                  <button class="btn-accion btn-edit" @click="abrirModalEditar(u)" title="Editar">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Editar
-                  </button>
-                  <button class="btn-accion btn-delete" @click="confirmarEliminar(u)" title="Eliminar">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                    </svg>
-                    Eliminar
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="tabla-scroll">
+          <table class="usuarios-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(u, i) in cajerosFiltrados" :key="u.id">
+                <td class="td-num">{{ i + 1 }}</td>
+                <td>
+                  <div class="user-cell">
+                    <div class="user-avatar">{{ u.username.charAt(0).toUpperCase() }}</div>
+                    <span class="user-name">{{ u.username }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="role-badge role-cajero">Cajero</span>
+                </td>
+                <td>
+                  <div class="acciones">
+                    <button class="btn-accion btn-edit" @click="abrirModalEditar(u)" title="Editar">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      Editar
+                    </button>
+                    <button class="btn-accion btn-delete" @click="confirmarEliminar(u)" title="Eliminar">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                      Eliminar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -467,6 +469,7 @@ async function eliminarUsuario() {
 .empty-state span { font-size: var(--text-sm); }
 
 /* Table */
+.tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .usuarios-table {
   width: 100%;
   border-collapse: separate;
@@ -531,6 +534,40 @@ async function eliminarUsuario() {
 .btn-edit:hover { background: #bfdbfe; }
 .btn-delete { background: var(--danger-light); color: var(--danger); }
 .btn-delete:hover { background: #fecaca; }
+
+@media (max-width: 1080px) {
+  .usuarios-page {
+    padding: var(--space-6);
+  }
+
+  .tabla-header {
+    align-items: stretch;
+  }
+
+  .search-wrap,
+  .search-input {
+    width: 100%;
+  }
+
+  .stats-row {
+    flex-wrap: wrap;
+  }
+
+  .usuarios-table {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 640px) {
+  .usuarios-page {
+    padding: var(--space-4);
+  }
+
+  .btn-nuevo {
+    width: 100%;
+    justify-content: center;
+  }
+}
 
 /* ── Modal ──────────────────────────────── */
 .modal-overlay {

@@ -41,24 +41,26 @@
 
             <!-- Detalles Expandibles -->
             <div v-if="expandedId === v.id" class="sale-details">
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>Precio</th>
-                    <th class="text-right">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in v.items" :key="item.id">
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.qty }}</td>
-                    <td>${{ Number(item.price).toFixed(2) }}</td>
-                    <td class="text-right">${{ (item.qty * item.price).toFixed(2) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="items-table-wrap">
+                <table class="items-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cant.</th>
+                      <th>Precio</th>
+                      <th class="text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in v.items" :key="item.id">
+                      <td>{{ item.name }}</td>
+                      <td>{{ item.qty }}</td>
+                      <td>${{ Number(item.price).toFixed(2) }}</td>
+                      <td class="text-right">${{ (item.qty * item.price).toFixed(2) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               
               <div class="sale-actions" v-if="authStore.isAdmin">
                 <button class="btn-delete" @click="confirmDelete(v.id)">
@@ -141,7 +143,7 @@ async function confirmDelete(id) {
 </script>
 
 <style scoped>
-.historial { padding: var(--space-6); background: var(--content-bg); min-height: 100vh; }
+.historial { padding: var(--space-6); background: var(--content-bg); min-height: 100%; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); }
 .header h1 { font-size: var(--text-2xl); font-weight: 800; }
 
@@ -178,6 +180,7 @@ async function confirmDelete(id) {
 .icon-chevron.expanded { transform: rotate(180deg); }
 
 .sale-details { padding: var(--space-5); background: #fafafa; border-top: 1px solid var(--gray-100); }
+.items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .items-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .items-table th { text-align: left; color: var(--gray-500); font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid var(--gray-200); }
@@ -193,4 +196,43 @@ async function confirmDelete(id) {
 .btn-delete:hover { background: #fecaca; }
 
 .empty-state { text-align: center; padding: 40px; color: var(--gray-400); }
+
+@media (max-width: 1080px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  .filters {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .sale-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .sale-main-info,
+  .sale-sum-info {
+    flex-wrap: wrap;
+  }
+
+  .sale-total {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .items-table {
+    min-width: 520px;
+  }
+}
+
+@media (max-width: 640px) {
+  .historial {
+    padding: var(--space-4);
+  }
+}
 </style>

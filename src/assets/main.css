@@ -1,7 +1,7 @@
 /* ===== POS Global Styles ===== */
 
-/* Import Inter font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Intentional dashboard typography */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
 
 /* CSS Reset */
 *,
@@ -14,10 +14,24 @@
 
 /* CSS Custom Properties */
 :root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --mobile-header-base: 60px;
+  --mobile-nav-base: 65px;
+  --mobile-header-height: calc(var(--mobile-header-base) + var(--safe-area-top));
+  --mobile-nav-height: calc(var(--mobile-nav-base) + var(--safe-area-bottom));
+
   /* Primary palette */
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
   --primary-light: #dbeafe;
+  --primary-ink: #163b89;
+  --accent: #f59e0b;
+  --accent-light: #fef3c7;
+  --teal: #0f766e;
+  --teal-light: #ccfbf1;
 
   /* Accent / success / danger */
   --success: #16a34a;
@@ -42,34 +56,38 @@
   --gray-900: #111827;
 
   /* Sidebar */
-  --sidebar-width: 220px;
-  --sidebar-bg: var(--gray-900);
-  --sidebar-text: var(--gray-300);
+  --sidebar-width: 288px;
+  --sidebar-bg: linear-gradient(180deg, #132744 0%, #0f1d35 52%, #0b1528 100%);
+  --sidebar-text: rgba(226, 232, 240, 0.78);
   --sidebar-active: var(--primary);
 
   /* Layout */
   --header-height: 56px;
-  --content-bg: var(--gray-50);
+  --content-bg: #edf2f9;
   --card-bg: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.72);
+  --surface-muted: #f5f8fc;
+  --surface-border: rgba(148, 163, 184, 0.22);
 
   /* Typography */
-  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-family: 'Manrope', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Manrope', sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
+  --text-xl: clamp(1.125rem, 1rem + 0.35vw, 1.3rem);
+  --text-2xl: clamp(1.45rem, 1.1rem + 0.95vw, 1.9rem);
+  --text-3xl: clamp(1.8rem, 1.25rem + 1.55vw, 2.55rem);
 
   /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
+  --space-5: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
+  --space-6: clamp(1.15rem, 0.95rem + 0.7vw, 1.5rem);
+  --space-8: clamp(1.5rem, 1.1rem + 1.2vw, 2rem);
 
   /* Borders */
   --radius-sm: 6px;
@@ -81,6 +99,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 30px 80px rgba(15, 23, 42, 0.16);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -92,22 +111,30 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
 }
 
 body {
   font-family: var(--font-family);
   color: var(--gray-800);
-  background: var(--content-bg);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
+    radial-gradient(circle at right center, rgba(245, 158, 11, 0.1), transparent 24%),
+    linear-gradient(180deg, #f5f7fb 0%, #e9eef7 100%);
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 #app {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.25;
   color: var(--gray-900);
@@ -126,6 +153,20 @@ a {
 
 a:hover {
   color: var(--primary-dark);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
 }
 
 /* Scrollbar */
@@ -150,9 +191,9 @@ a:hover {
 /* Utility classes */
 .card {
   background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--gray-200);
+  border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--surface-border);
 }
 
 /* ===== Responsive Media Queries ===== */

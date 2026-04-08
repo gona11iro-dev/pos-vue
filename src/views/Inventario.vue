@@ -350,6 +350,13 @@ code {
   -webkit-overflow-scrolling: touch;
 }
 
+@media (max-width: 1080px) {
+  .inventario-page { padding: var(--space-6); }
+  .inv-header { flex-direction: column; align-items: stretch; }
+  .inv-search { max-width: none; }
+  .btn-export { margin-left: 0; justify-content: center; }
+}
+
 @media (max-width: 768px) {
   .inventario-page { padding: var(--space-4); }
   .inv-header { flex-direction: column; align-items: stretch; }

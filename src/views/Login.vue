@@ -94,11 +94,16 @@ async function login() {
 <style scoped>
 .login-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--gray-900) 0%, #1e3a5f 50%, var(--primary-dark) 100%);
-  padding: var(--space-4);
+  padding:
+    calc(var(--space-4) + var(--safe-area-top))
+    calc(var(--space-4) + var(--safe-area-right))
+    calc(var(--space-4) + var(--safe-area-bottom))
+    calc(var(--space-4) + var(--safe-area-left));
 }
 
 .login-card {
@@ -226,5 +231,12 @@ async function login() {
   background: var(--danger-light);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    padding: var(--space-6) var(--space-5);
+    border-radius: 24px;
+  }
 }
 </style>

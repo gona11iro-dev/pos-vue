@@ -633,4 +633,50 @@ code { background: var(--gray-100); padding: 2px 6px; border-radius: 4px; font-s
   color: var(--gray-400); gap: var(--space-2); text-align: center;
 }
 .empty-state p { font-size: var(--text-base); font-weight: 500; color: var(--gray-500); }
+
+@media (max-width: 1080px) {
+  .db-page {
+    padding: var(--space-6);
+  }
+
+  .page-header,
+  .tabla-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions,
+  .toolbar-right {
+    flex-wrap: wrap;
+  }
+
+  .search-wrap,
+  .search-input {
+    width: 100%;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .tab-btn {
+    white-space: nowrap;
+  }
+
+  .data-table {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 640px) {
+  .db-page {
+    padding: var(--space-4);
+  }
+
+  .btn-export {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>

@@ -207,6 +207,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
+  padding:
+    calc(16px + var(--safe-area-top))
+    calc(16px + var(--safe-area-right))
+    calc(16px + var(--safe-area-bottom))
+    calc(16px + var(--safe-area-left));
 }
 
 .scanner-modal {
@@ -388,5 +393,28 @@ onBeforeUnmount(() => {
 
 .btn-cancel:hover {
   background: var(--gray-100, #f3f4f6);
+}
+
+@media (max-width: 640px) {
+  .scanner-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .scanner-modal {
+    width: 100%;
+    max-width: none;
+    max-height: min(86dvh, 760px);
+    border-radius: 24px 24px 0 0;
+  }
+
+  .scanner-body {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .scanner-footer {
+    padding-bottom: calc(12px + var(--safe-area-bottom));
+  }
 }
 </style>

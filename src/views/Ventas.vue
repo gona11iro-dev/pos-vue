@@ -12,7 +12,7 @@
       <!-- ==========================================
            VISTA MÓVIL (APK / TABLET)
            ========================================== -->
-      <div v-if="isMobileView" class="mobile-layout">
+      <div v-if="isMobileView" class="mobile-layout" :class="{ 'mobile-layout--ticket-open': carrito.length > 0 }">
         <!-- Header: Stats del día -->
         <div class="m-header">
           <div class="m-store-info">
@@ -86,72 +86,111 @@
            VISTA ESCRITORIO (WINDOWS / WEB)
            ========================================== -->
       <div v-else class="desktop-layout">
-        <div class="pc-header">
-          <h1>Punto de Venta</h1>
-          <div class="pc-search">
-            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input v-model="buscar" placeholder="Buscar por nombre o código..." @keyup.enter="agregarRapido" />
+        <div class="pc-toolbar">
+          <div class="pc-toolbar__copy">
+            <span class="pc-kicker">Caja</span>
+            <h1>Caja Tiendita</h1>
+            <p>Busca un producto y agrégalo al ticket sin pasos extra.</p>
           </div>
-          <button class="pc-scan-btn" @click="mostrarScanner = true">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-             Escáner
-          </button>
+          <div class="pc-toolbar__actions">
+            <div class="pc-search">
+              <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input v-model="buscar" placeholder="Buscar por nombre o código..." @keyup.enter="agregarRapido" />
+            </div>
+            <button class="pc-scan-btn" @click="mostrarScanner = true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Escáner
+            </button>
+          </div>
         </div>
 
         <div class="pc-body">
-          <!-- Panel Izquierdo: Lista de Productos -->
-          <div class="pc-products-section">
+          <section class="pc-products-section">
             <div class="pc-section-header">
-              <div class="pc-section-title">Catálogo</div>
-              <div class="pc-cats">
-                <button v-for="cat in categorias" :key="cat" class="pc-cat-btn" :class="{'active': categoriaSeleccionada === cat}" @click="categoriaSeleccionada = cat">{{ cat }}</button>
+              <div class="pc-section-text">
+                <div class="pc-section-title">Catálogo disponible</div>
+                <p>Haz clic sobre cualquier tarjeta para agregar al ticket.</p>
               </div>
+              <span class="pc-product-count">{{ productosFiltrados.length }} productos</span>
             </div>
-            <div class="pc-grid">
-              <button v-for="p in productosFiltrados" :key="p.barcode" class="pc-p-card" @click="agregar(p)">
-                <span class="pc-p-name">{{ p.name }}</span>
-                <span class="pc-p-price">${{ p.price.toFixed(2) }} <small v-if="p.unit === 'kg'">/kg</small></span>
-              </button>
-            </div>
-          </div>
 
-          <!-- Panel Derecho: Carrito de Venta -->
-          <div class="pc-cart-section">
-            <div class="pc-section-title">Venta Actual</div>
-            <div class="pc-cart-list">
-              <div v-if="!carrito.length" class="pc-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                El carrito está vacío
+            <div v-if="productosFiltrados.length" class="pc-grid">
+              <article v-for="p in productosFiltrados" :key="p.barcode" class="pc-p-card">
+                <div class="pc-p-top">
+                  <span class="pc-p-unit" :class="{ 'pc-p-unit--weight': p.unit === 'kg' }">{{ p.unit === 'kg' ? 'Peso' : 'Pieza' }}</span>
+                  <span class="pc-p-code">{{ String(p.barcode).startsWith('INT-') ? 'Interno' : String(p.barcode).slice(-4) }}</span>
+                </div>
+                <span class="pc-p-name">{{ p.name }}</span>
+                <div class="pc-p-footer">
+                  <span class="pc-p-price">${{ p.price.toFixed(2) }} <small v-if="p.unit === 'kg'">/kg</small></span>
+                  <button class="pc-p-add-btn" @click="agregar(p)">Agregar</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="pc-empty-state">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              No encontramos productos con esa búsqueda.
+            </div>
+          </section>
+
+          <aside class="pc-cart-section">
+            <div class="pc-ticket-shell">
+              <div class="pc-section-header pc-section-header--ticket">
+                <div class="pc-section-text">
+                  <div class="pc-section-title">Venta actual</div>
+                  <p>Ticket en preparación</p>
+                </div>
+                <span class="pc-ticket-chip">{{ carrito.length }} productos</span>
               </div>
-              <div v-for="item in carrito" :key="item._uid" class="pc-cart-item">
-                <div class="pc-item-info">
-                  <strong>{{ item.name }}</strong>
-                  <span v-if="item.unit === 'kg'">${{ item.price.toFixed(2) }} /kg</span>
-                  <span v-else>${{ item.price.toFixed(2) }} c/u</span>
+
+              <div class="pc-cart-list">
+                <div v-if="!carrito.length" class="pc-empty">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                  El carrito está vacío
                 </div>
-                
-                <!-- Controles de cantidad -->
-                <div v-if="item.unit === 'kg'" class="pc-item-weight">
-                  <button class="peso-chip" @click="editarPeso(item)">{{ formatPeso(item.qty) }}</button>
+                <div v-for="item in carrito" :key="item._uid" class="pc-cart-item">
+                  <div class="pc-item-info">
+                    <strong>{{ item.name }}</strong>
+                    <span v-if="item.unit === 'kg'">${{ item.price.toFixed(2) }} /kg</span>
+                    <span v-else>${{ item.price.toFixed(2) }} c/u</span>
+                  </div>
+
+                  <div v-if="item.unit === 'kg'" class="pc-item-weight">
+                    <button class="peso-chip" @click="editarPeso(item)">{{ formatPeso(item.qty) }}</button>
+                  </div>
+                  <div v-else class="pc-item-qty">
+                    <button @click="menos(item)">-</button>
+                    <span>{{ item.qty }}</span>
+                    <button @click="mas(item)">+</button>
+                  </div>
+
+                  <div class="pc-item-subtotal">${{ (item.qty * item.price).toFixed(2) }}</div>
+                  <button class="pc-item-del" @click="eliminar(item)">×</button>
                 </div>
-                <div v-else class="pc-item-qty">
-                  <button @click="menos(item)">-</button>
-                  <span>{{ item.qty }}</span>
-                  <button @click="mas(item)">+</button>
+              </div>
+
+              <div class="pc-cart-footer">
+                <div class="pc-ticket-summary" v-if="carrito.length">
+                  <div class="pc-summary-line">
+                    <span>Artículos</span>
+                    <strong>{{ totalArticulos }}</strong>
+                  </div>
+                  <div class="pc-summary-line">
+                    <span>Productos distintos</span>
+                    <strong>{{ carrito.length }}</strong>
+                  </div>
+                  <div class="pc-summary-line pc-summary-line--total">
+                    <span>Total</span>
+                    <strong>${{ totalCarrito.toFixed(2) }}</strong>
+                  </div>
                 </div>
-                
-                <div class="pc-item-subtotal">${{ (item.qty * item.price).toFixed(2) }}</div>
-                <button class="pc-item-del" @click="eliminar(item)">×</button>
+                <div class="pc-actions">
+                  <button class="pc-btn-pay" :disabled="!carrito.length" @click="abrirPagar">Cobrar</button>
+                  <button class="pc-btn-cancel" @click="cancelar" :disabled="!carrito.length">Cancelar</button>
+                </div>
               </div>
             </div>
-            <div class="pc-cart-footer">
-              <div class="pc-total">Total: <strong>${{ totalCarrito.toFixed(2) }}</strong></div>
-              <div class="pc-actions">
-                <button class="pc-btn-pay" :disabled="!carrito.length" @click="abrirPagar">Finalizar Venta</button>
-                <button class="pc-btn-cancel" @click="cancelar" :disabled="!carrito.length">Cancelar</button>
-              </div>
-            </div>
-          </div>
+          </aside>
         </div>
       </div>
 
@@ -160,7 +199,7 @@
     <!-- Modales (Compartidos) -->
     <Teleport to="body">
       <!-- Modal Pago Completo -->
-      <div v-if="mostrarPagar" class="modal-overlay">
+      <div v-if="mostrarPagar" class="modal-overlay" @click.self="mostrarPagar = false">
         <div class="modal-card modal-pago">
           <h2>Detalles de Cobro</h2>
           <div class="form-group">
@@ -174,7 +213,7 @@
             <label>Efectivo Recibido:</label>
             <div class="input-received-wrapper">
               <span>$</span>
-              <input type="number" v-model="montoRecibido" class="p-input" autofocus />
+              <input type="number" v-model.number="montoRecibido" class="p-input" autofocus @keyup.enter="confirmarPago" />
               <button class="btn-clear-input" @click="montoRecibido = 0">Limpiar</button>
             </div>
             
@@ -201,13 +240,13 @@
             </div>
           </div>
           
-          <div class="modal-cambio" :class="{ 'error': montoRecibido < totalCarrito }">
-            {{ montoRecibido < totalCarrito ? 'Falta cobrar:' : 'Cambio a devolver:' }} ${{ Math.abs(montoRecibido - totalCarrito).toFixed(2) }}
+          <div class="modal-cambio" :class="{ 'error': montoRecibidoNumero < totalCarrito }">
+            {{ montoRecibidoNumero < totalCarrito ? 'Falta cobrar:' : 'Cambio a devolver:' }} ${{ Math.abs(montoRecibidoNumero - totalCarrito).toFixed(2) }}
           </div>
           
           <div class="modal-footer">
             <button class="btn-cancelar" @click="mostrarPagar = false">Cerrar</button>
-            <button class="btn-success" :disabled="montoRecibido < totalCarrito" @click="confirmarPago">Completar Venta</button>
+            <button class="btn-success" :disabled="montoRecibidoNumero < totalCarrito" @click="confirmarPago">Completar Venta</button>
           </div>
         </div>
       </div>
@@ -242,13 +281,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onBeforeUnmount, onMounted } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { useAuthStore } from '../stores/auth'
 import { useProductosStore } from '../stores/productos'
 import { useVentasStore } from '../stores/ventas'
-import { Capacitor } from '@capacitor/core'
 
 const auth = useAuthStore()
 const productosStore = useProductosStore()
@@ -256,8 +294,13 @@ const ventasStore = useVentasStore()
 
 // Detección robusta de dispositivo
 const windowWidth = ref(window.innerWidth)
-const isMobileView = computed(() => windowWidth.value <= 1024 || Capacitor.getPlatform() !== 'web')
-window.addEventListener('resize', () => windowWidth.value = window.innerWidth)
+const windowHeight = ref(window.innerHeight)
+const isMobileView = computed(() => windowWidth.value <= 820 || windowHeight.value <= 520)
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
+  windowHeight.value = window.innerHeight
+}
 
 const currentUsername = computed(() => auth.username)
 
@@ -272,9 +315,7 @@ function mostrarFeedback(msg, type = 'success') {
   scanMsgTimer = setTimeout(() => { scanMsg.value = '' }, 3000)
 }
 
-// Datos y Filtros
-const categorias = ['Todo', 'Refrescos', 'Botanas', 'Dulces', 'Lácteos', 'Pan', 'Otros']
-const categoriaSeleccionada = ref('Todo')
+// Datos y Búsqueda
 
 const totalVentasHoy = computed(() => {
   const lista = ventasStore.ventas || []
@@ -287,21 +328,14 @@ const listaProductos = computed(() => {
     barcode: p.barcode,
     name: p.name,
     price: Number(p.price) || 0,
-    unit: p.unit || 'pza',
-    category: p.category || 'Otros'
+    unit: p.unit || 'pza'
   }))
 })
 
 const productosFiltrados = computed(() => {
-  let filtrados = listaProductos.value
-  if (categoriaSeleccionada.value !== 'Todo') {
-    filtrados = filtrados.filter(p => p.category === categoriaSeleccionada.value || (categoriaSeleccionada.value === 'Otros' && !p.category))
-  }
   const q = buscar.value.trim().toLowerCase()
-  if (q) {
-    filtrados = filtrados.filter(p => p.name.toLowerCase().includes(q) || String(p.barcode).includes(q))
-  }
-  return filtrados
+  if (!q) return listaProductos.value
+  return listaProductos.value.filter(p => p.name.toLowerCase().includes(q) || String(p.barcode).includes(q))
 })
 
 // Carrito
@@ -314,14 +348,20 @@ const mostrarScanner = ref(false)
 const mostrarPagar = ref(false)
 const montoRecibido = ref(0)
 const clienteNombre = ref('')
+const montoRecibidoNumero = computed(() => Number(montoRecibido.value) || 0)
 
 // Peso Modal Avanzado
 const modalPeso = reactive({ visible: false, producto: null, pesoStr: '', editUid: null })
 const pesoCalculado = computed(() => (parseFloat(modalPeso.pesoStr) || 0) * (modalPeso.producto?.price || 0))
 
 onMounted(async () => {
+  window.addEventListener('resize', handleResize)
   await productosStore.cargarProductos()
   await ventasStore.cargarVentas()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 // ── Acciones de Venta ─────────────────────────────────
@@ -418,20 +458,26 @@ function abrirPagar() {
 }
 
 function sumarMonto(cantidad) {
-  if (montoRecibido.value === totalCarrito.value && cantidad !== 0) montoRecibido.value = 0
-  montoRecibido.value += cantidad
+  if (montoRecibidoNumero.value === totalCarrito.value && cantidad !== 0) montoRecibido.value = 0
+  montoRecibido.value = montoRecibidoNumero.value + cantidad
 }
 
 async function confirmarPago() {
+  if (!carrito.value.length) return
+  if (montoRecibidoNumero.value < totalCarrito.value) return
+
   try {
     await ventasStore.registrarVenta(carrito.value, totalCarrito.value, {
       client: clienteNombre.value,
       method: 'Efectivo',
-      paidAmount: montoRecibido.value,
-      change: montoRecibido.value - totalCarrito.value
+      paidAmount: montoRecibidoNumero.value,
+      change: montoRecibidoNumero.value - totalCarrito.value
     })
-    mostrarFeedback(`Venta exitosa. Cambio: $${(montoRecibido.value - totalCarrito.value).toFixed(2)}`)
+    mostrarFeedback(`Venta exitosa. Cambio: $${(montoRecibidoNumero.value - totalCarrito.value).toFixed(2)}`)
     carrito.value = []
+    buscar.value = ''
+    clienteNombre.value = ''
+    montoRecibido.value = 0
     mostrarPagar.value = false
   } catch (error) {
     mostrarFeedback('Error al procesar la venta', 'error')
@@ -440,7 +486,7 @@ async function confirmarPago() {
 </script>
 
 <style scoped>
-.ventas-wrapper { height: 100vh; overflow: hidden; background: #f8fafc; position: relative; }
+.ventas-wrapper { min-height: 100%; background: #f8fafc; position: relative; }
 
 /* --- Notificaciones --- */
 .scan-feedback {
@@ -454,70 +500,98 @@ async function confirmarPago() {
 @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
 
 /* --- VISTA PC --- */
-.desktop-layout { display: flex; flex-direction: column; height: 100%; }
-.pc-header { display: flex; align-items: center; gap: 20px; padding: 15px 25px; background: #fff; border-bottom: 1px solid #e2e8f0; }
-.pc-header h1 { font-size: 1.5rem; color: #0f172a; font-weight: 700; margin-right: 20px; }
-.pc-search { position: relative; flex: 1; max-width: 600px; display: flex; align-items: center; }
-.search-icon { position: absolute; left: 14px; color: #94a3b8; }
-.pc-search input { width: 100%; padding: 12px 15px 12px 40px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; color: #334155; }
-.pc-search input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px #dbeafe; }
-.pc-scan-btn { display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-.pc-scan-btn:hover { background: #1d4ed8; }
+.desktop-layout { display: flex; flex-direction: column; gap: 18px; min-height: 100%; padding: 26px; }
+.pc-toolbar,
+.pc-products-section,
+.pc-ticket-shell { border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 28px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); }
+.pc-kicker { display: inline-flex; margin-bottom: 8px; color: var(--primary-ink); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.pc-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 22px; }
+.pc-toolbar__copy h1 { font-size: 1.95rem; letter-spacing: -0.05em; }
+.pc-toolbar__copy p { margin-top: 6px; color: var(--gray-500); line-height: 1.55; }
+.pc-toolbar__actions { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; justify-content: flex-end; }
+.pc-search { position: relative; flex: 1; max-width: 560px; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 16px; color: #94a3b8; }
+.pc-search input { width: 100%; padding: 14px 16px 14px 42px; border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 18px; background: var(--surface-muted); font-size: 1rem; color: #334155; }
+.pc-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.pc-scan-btn { display: flex; align-items: center; gap: 8px; padding: 14px 18px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; border-radius: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 18px 30px rgba(37, 99, 235, 0.22); }
+.pc-scan-btn:hover { transform: translateY(-1px); }
 
-.pc-body { display: flex; flex: 1; overflow: hidden; }
-.pc-products-section { width: 45%; padding: 20px; overflow-y: auto; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; }
-.pc-section-header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 5px; }
-.pc-section-title { font-size: 0.9rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-.pc-cats { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
-.pc-cat-btn { padding: 6px 14px; background: #f1f5f9; border: 1px solid transparent; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #475569; cursor: pointer; white-space: nowrap; }
-.pc-cat-btn.active { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+.pc-body { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.85fr); gap: 18px; flex: 1; min-height: 0; }
+.pc-products-section { padding: 22px; overflow-y: auto; }
+.pc-section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.pc-section-header--ticket { margin-bottom: 0; padding-bottom: 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.16); }
+.pc-section-title { font-size: 0.9rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; }
+.pc-section-text p { margin-top: 6px; color: var(--gray-500); font-size: var(--text-sm); }
+.pc-product-count { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; background: rgba(37, 99, 235, 0.08); color: var(--primary-ink); font-size: var(--text-xs); font-weight: 800; white-space: nowrap; }
 
-.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-.pc-p-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; cursor: pointer; transition: transform 0.1s, border-color 0.1s; text-align: center; }
-.pc-p-card:hover { border-color: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.pc-p-name { display: block; font-weight: 600; font-size: 0.9rem; color: #1e293b; line-height: 1.2; }
-.pc-p-price { display: block; color: #2563eb; font-weight: 700; margin-top: 8px; font-size: 1rem; }
-.pc-p-price small { color: #64748b; font-size: 0.75rem; font-weight: 500; }
+.pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 14px; }
+.pc-p-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 22px; background: var(--surface-muted); border: 1px solid rgba(148, 163, 184, 0.14); text-align: left; transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease; }
+.pc-p-card:hover { transform: translateY(-2px); border-color: rgba(37, 99, 235, 0.24); box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08); }
+.pc-p-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pc-p-unit,
+.pc-p-code,
+.pc-ticket-chip { display: inline-flex; align-items: center; border-radius: 999px; font-size: var(--text-xs); font-weight: 800; }
+.pc-p-unit { padding: 6px 10px; background: rgba(37, 99, 235, 0.08); color: var(--primary-ink); }
+.pc-p-unit--weight { background: rgba(15, 118, 110, 0.1); color: var(--teal); }
+.pc-p-code { padding: 6px 10px; background: rgba(51, 65, 85, 0.08); color: #475569; }
+.pc-p-name { display: block; min-height: 2.6em; font-weight: 700; font-size: 0.96rem; color: #1e293b; line-height: 1.35; }
+.pc-p-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+.pc-p-price { display: block; color: #2563eb; font-weight: 800; font-size: 1.05rem; }
+.pc-p-price small { color: #64748b; font-size: 0.75rem; font-weight: 600; }
+.pc-p-add-btn { border: none; border-radius: 14px; padding: 10px 14px; background: linear-gradient(135deg, #65a30d, #4d7c0f); color: #fff; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px rgba(101, 163, 13, 0.22); }
+.pc-p-add-btn:hover { transform: translateY(-1px); }
+.pc-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 220px; border-radius: 24px; background: var(--surface-muted); color: var(--gray-500); border: 1px dashed rgba(148, 163, 184, 0.22); }
 
-.pc-cart-section { width: 55%; background: #fff; display: flex; flex-direction: column; }
-.pc-cart-section .pc-section-title { padding: 20px 20px 0; }
-.pc-cart-list { flex: 1; padding: 15px 20px; overflow-y: auto; }
-.pc-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 1.1rem; gap: 10px; font-weight: 500; }
-.pc-cart-item { display: flex; align-items: center; gap: 15px; padding: 15px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 10px; transition: background 0.2s; }
-.pc-cart-item:hover { background: #f1f5f9; }
+.pc-cart-section { min-height: 0; }
+.pc-ticket-shell { height: 100%; padding: 22px; display: flex; flex-direction: column; }
+.pc-ticket-chip { padding: 8px 12px; background: rgba(37, 99, 235, 0.08); color: var(--primary-ink); }
+.pc-cart-list { flex: 1; padding: 18px 0; overflow-y: auto; }
+.pc-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 1.05rem; gap: 10px; font-weight: 600; }
+.pc-cart-item { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--surface-muted); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 18px; margin-bottom: 10px; }
 .pc-item-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .pc-item-info strong { color: #0f172a; font-size: 0.95rem; }
 .pc-item-info span { color: #64748b; font-size: 0.8rem; }
-.pc-item-qty { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2px; }
-.pc-item-qty button { width: 32px; height: 32px; border: none; background: transparent; cursor: pointer; font-size: 1.2rem; font-weight: 500; color: #475569; border-radius: 6px; }
+.pc-item-qty { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 12px; padding: 2px; }
+.pc-item-qty button { width: 32px; height: 32px; border: none; background: transparent; cursor: pointer; font-size: 1.2rem; font-weight: 600; color: #475569; border-radius: 10px; }
 .pc-item-qty button:hover { background: #f1f5f9; }
-.pc-item-qty span { font-weight: 600; min-width: 20px; text-align: center; color: #0f172a; }
-.pc-item-subtotal { font-weight: 800; font-size: 1.1rem; min-width: 90px; text-align: right; color: #0f172a; }
+.pc-item-qty span { font-weight: 700; min-width: 20px; text-align: center; color: #0f172a; }
+.pc-item-subtotal { min-width: 90px; text-align: right; font-weight: 800; font-size: 1.05rem; color: #0f172a; }
 .pc-item-del { border: none; background: transparent; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 5px; }
 .pc-item-del:hover { color: #ef4444; }
+.peso-chip { padding: 8px 12px; border-radius: 12px; background: #f3e8ff; border: 1px dashed #a855f7; color: #7e22ce; font-weight: 700; cursor: pointer; }
 
-/* Peso Badge */
-.peso-chip { padding: 8px 12px; border-radius: 8px; background: #f3e8ff; border: 1px dashed #a855f7; color: #7e22ce; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-.peso-chip:hover { background: #e9d5ff; }
-
-.pc-cart-footer { padding: 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
-.pc-total { font-size: 1.25rem; text-align: right; margin-bottom: 15px; color: #475569; }
-.pc-total strong { font-size: 2rem; color: #0f172a; margin-left: 10px; }
+.pc-cart-footer { padding-top: 18px; border-top: 1px solid rgba(148, 163, 184, 0.16); }
+.pc-ticket-summary { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.pc-summary-line { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; background: var(--surface-muted); border: 1px solid rgba(148, 163, 184, 0.14); }
+.pc-summary-line span { color: var(--gray-500); font-size: var(--text-sm); font-weight: 700; }
+.pc-summary-line strong { color: var(--gray-900); font-size: 1.05rem; font-weight: 800; }
+.pc-summary-line--total strong { font-family: var(--font-display); font-size: 1.55rem; }
 .pc-actions { display: flex; gap: 15px; }
-.pc-btn-pay { flex: 2; display: flex; align-items: center; justify-content: center; background: #16a34a; color: #fff; border: none; padding: 18px; border-radius: 12px; font-weight: 700; font-size: 1.25rem; cursor: pointer; transition: background 0.2s; }
-.pc-btn-pay:hover:not(:disabled) { background: #15803d; }
+.pc-btn-pay { flex: 2; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; border: none; padding: 18px; border-radius: 18px; font-weight: 800; font-size: 1.15rem; cursor: pointer; box-shadow: 0 18px 30px rgba(22, 163, 74, 0.2); }
+.pc-btn-pay:hover:not(:disabled) { transform: translateY(-1px); }
 .pc-btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
-.pc-btn-cancel { flex: 1; background: #fff; color: #ef4444; border: 1px solid #ef4444; padding: 18px; border-radius: 12px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
+.pc-btn-cancel { flex: 1; background: #fff; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 18px; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer; }
 .pc-btn-cancel:hover:not(:disabled) { background: #fef2f2; }
 .pc-btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; border-color: #cbd5e1; color: #94a3b8; }
 
 /* --- VISTA MÓVIL --- */
-.mobile-layout { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-bottom: 130px; background: #f8fafc; }
+.mobile-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  background: #f8fafc;
+}
+
+.mobile-layout--ticket-open {
+  padding-bottom: calc(min(48dvh, 420px) + 28px);
+}
 
 .m-header { padding: 20px; background: #fff; border-bottom: 1px solid #e2e8f0; }
 .m-badge { background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
 .m-header h3 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 10px; }
-.m-stats-row { display: flex; gap: 12px; margin-top: 15px; }
+.m-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 15px; }
 .m-stat { flex: 1; padding: 15px; border-radius: 16px; color: #fff; display: flex; flex-direction: column; gap: 5px; }
 .m-stat--primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .m-stat--success { background: linear-gradient(135deg, #22c55e, #16a34a); }
@@ -534,7 +608,7 @@ async function confirmarPago() {
 .m-cat-pill { padding: 8px 16px; background: #f1f5f9; border: 1px solid transparent; border-radius: 20px; font-weight: 600; font-size: 0.85rem; color: #475569; white-space: nowrap; }
 .m-cat-pill--active { background: #2563eb; color: #fff; }
 
-.m-products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px 20px; }
+.m-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; padding: 15px 20px; }
 .m-p-card { background: #fff; border-radius: 12px; padding: 12px 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 90px; }
 .m-p-name { font-size: 0.8rem; font-weight: 700; color: #1e293b; line-height: 1.2; margin-bottom: 6px; }
 .m-p-price-row { display: flex; align-items: baseline; justify-content: center; gap: 2px; }
@@ -542,7 +616,21 @@ async function confirmarPago() {
 .m-p-unit { font-size: 0.7rem; color: #64748b; font-weight: 600; }
 .empty-state { grid-column: 1 / -1; text-align: center; padding: 30px; color: #94a3b8; font-weight: 500; }
 
-.m-ticket-panel { position: fixed; bottom: 65px; left: 0; right: 0; background: #fff; border-top: 2px solid #e2e8f0; padding: 15px 20px; box-shadow: 0 -10px 25px rgba(0,0,0,0.05); z-index: 900; max-height: 50vh; display: flex; flex-direction: column; }
+.m-ticket-panel {
+  position: fixed;
+  left: calc(12px + var(--safe-area-left));
+  right: calc(12px + var(--safe-area-right));
+  bottom: calc(var(--mobile-nav-height) + 10px);
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 15px 20px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  z-index: 900;
+  max-height: min(48dvh, 420px);
+  display: flex;
+  flex-direction: column;
+}
 .m-ticket-header { border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px; text-align: center; }
 .m-ticket-header h4 { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
 .m-ticket-items { overflow-y: auto; flex: 1; margin-bottom: 15px; }
@@ -578,7 +666,7 @@ async function confirmarPago() {
 .quick-cash-container { margin-bottom: 20px; }
 .subtitle-cash { font-size: 0.85rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
 .mt-2 { margin-top: 10px; }
-.quick-cash { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 5px; }
+.quick-cash { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; margin-bottom: 5px; }
 .btn-cash { padding: 12px 5px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 700; font-size: 1.05rem; color: #1e293b; cursor: pointer; }
 .btn-cash.exact { background: #dcfce7; border-color: #22c55e; color: #16a34a; }
 
@@ -605,6 +693,71 @@ async function confirmarPago() {
 .btn-success { flex: 2; padding: 16px; background: #16a34a; color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
 .btn-success:disabled, .btn-primary:disabled { opacity: 0.5; padding: 16px; border-radius: 12px; }
 .btn-primary { flex: 2; padding: 16px; background: #2563eb; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1.1rem; }
+
+@media (max-width: 1400px) {
+  .desktop-layout { padding: 20px; }
+  .pc-toolbar { flex-direction: column; align-items: stretch; }
+  .pc-toolbar__actions { justify-content: stretch; width: 100%; flex-wrap: wrap; }
+  .pc-search { max-width: none; }
+  .pc-body { grid-template-columns: 1fr; }
+  .pc-cart-section { min-height: 520px; }
+}
+
+@media (max-width: 1180px) {
+  .desktop-layout { padding: 18px; }
+  .pc-toolbar,
+  .pc-products-section,
+  .pc-ticket-shell { border-radius: 24px; }
+  .pc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .pc-cart-item { flex-wrap: wrap; }
+  .pc-item-info { min-width: 180px; }
+  .pc-item-subtotal { margin-left: auto; min-width: 0; }
+  .pc-actions { flex-direction: column; }
+}
+
+@media (max-width: 960px) {
+  .desktop-layout { padding: 16px; }
+  .pc-toolbar__copy h1 { font-size: 1.7rem; }
+  .pc-toolbar__actions > * { width: 100%; }
+  .pc-scan-btn { justify-content: center; }
+  .pc-section-header { flex-direction: column; align-items: stretch; }
+  .pc-product-count,
+  .pc-ticket-chip { justify-content: center; }
+  .pc-cart-section { min-height: 460px; }
+  .pc-actions { flex-direction: column; }
+}
+
+@media (max-width: 640px) {
+  .m-stats-row { grid-template-columns: 1fr; }
+  .m-ticket-actions { flex-direction: column; }
+
+  .m-products {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    padding: 14px 16px;
+  }
+
+  .m-header,
+  .m-controls,
+  .m-ticket-panel {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .m-ticket-panel {
+    left: calc(8px + var(--safe-area-left));
+    right: calc(8px + var(--safe-area-right));
+    bottom: calc(var(--mobile-nav-height) + 8px);
+    max-height: min(52dvh, 430px);
+  }
+
+  .input-received-wrapper {
+    flex-wrap: wrap;
+  }
+
+  .btn-clear-input {
+    width: 100%;
+  }
+}
 
 @media (max-width: 768px) {
   .modal-card { max-width: 100%; border-radius: 24px 24px 0 0; position: fixed; bottom: 0; margin: 0; padding: 20px 20px 30px; max-height: 90vh; overflow-y: auto;}
