@@ -723,8 +723,14 @@ async function confirmarPago() {
 
 /* Modales Mejorados */
 .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; backdrop-filter: blur(4px); }
-.modal-card { background: #fff; border-radius: 20px; width: 100%; max-width: 450px; padding: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: popIn 0.2s ease-out; }
+.modal-card { background: #fff; border-radius: 20px; width: 100%; max-width: 450px; padding: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); animation: popIn 0.2s ease-out; overflow: hidden; }
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-pago {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 760px);
+}
 
 .modal-pago h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 20px; text-align: center; }
 .form-group { margin-bottom: 20px; }
@@ -747,6 +753,11 @@ async function confirmarPago() {
 
 .modal-cambio { text-align: center; padding: 15px; font-weight: 800; font-size: 1.3rem; color: #16a34a; background: #dcfce7; border-radius: 12px; margin-bottom: 20px; }
 .modal-cambio.error { color: #dc2626; background: #fee2e2; }
+.modal-pago .quick-cash-container {
+  overflow-y: auto;
+  max-height: min(38vh, 320px);
+  padding-right: 4px;
+}
 
 /* Modal Peso */
 .peso-header { text-align: center; margin-bottom: 20px; }
@@ -764,6 +775,14 @@ async function confirmarPago() {
 .del-key { color: #dc2626 !important; }
 
 .modal-footer { display: flex; gap: 12px; }
+.modal-pago .modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: #fff;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
 .btn-cancelar { flex: 1; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; font-weight: 700; color: #64748b; cursor: pointer; }
 .btn-success { flex: 2; padding: 16px; background: #16a34a; color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
 .btn-success:disabled, .btn-primary:disabled { opacity: 0.5; padding: 16px; border-radius: 12px; }
@@ -837,9 +856,12 @@ async function confirmarPago() {
 @media (max-width: 768px) {
   .modal-card { max-width: 100%; border-radius: 24px 24px 0 0; position: fixed; bottom: 0; margin: 0; padding: 20px 20px 30px; max-height: 90vh; overflow-y: auto;}
   .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-pago { max-height: min(88dvh, 760px); }
   .p-total { font-size: 2rem; margin-bottom: 15px; padding: 10px; }
   .quick-cash { gap: 6px; }
   .btn-cash { padding: 10px 5px; font-size: 0.95rem; }
+  .modal-pago .quick-cash-container { max-height: min(34vh, 260px); }
+  .modal-pago .modal-footer { padding-bottom: calc(12px + var(--safe-area-bottom)); }
   .mt-2 { margin-top: 5px; }
 }
 </style>

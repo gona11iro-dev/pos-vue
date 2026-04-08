@@ -186,7 +186,7 @@ async function guardarCorteDiario() {
       productos: resumen.value.productos
     }
     await api.saveCorte(payload)
-    corteGuardadoMsg.value = `Corte diario ${date} guardado correctamente en base de datos.`
+    corteGuardadoMsg.value = `Corte diario ${date} guardado correctamente. Puedes verlo en Base de Datos > Cortes.`
   } catch (error) {
     corteErrorMsg.value = `No se pudo guardar el corte: ${error.message || 'error desconocido'}`
   } finally {

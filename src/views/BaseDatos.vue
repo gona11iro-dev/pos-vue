@@ -38,6 +38,11 @@
           <span class="stat-num">${{ totales.ingresos }}</span>
           <span class="stat-lbl">Total en ventas</span>
         </div>
+        <div class="stat-pill">
+          <span class="stat-dot dot-red"></span>
+          <span class="stat-num">{{ totales.cortes }}</span>
+          <span class="stat-lbl">Cortes guardados</span>
+        </div>
       </div>
 
       <!-- Tabs de tablas -->
@@ -261,6 +266,62 @@
         </div>
       </div>
 
+      <!-- ─── TABLA: CORTES ─────────────────────────────────────── -->
+      <div v-if="tabActiva === 'cortes'" class="card tabla-card">
+        <div class="tabla-toolbar">
+          <div class="search-wrap">
+            <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input v-model="busquedaCorte" id="bus-corte" type="text" placeholder="Buscar por fecha del corte..." class="search-input" />
+          </div>
+          <div class="toolbar-right">
+            <button class="btn-export btn-csv" @click="exportarCortesCsv">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              CSV
+            </button>
+            <button class="btn-export btn-json-sm" @click="exportarCortesJson">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+              JSON
+            </button>
+          </div>
+        </div>
+
+        <div v-if="!cortesFiltrados.length" class="empty-state">
+          <p>Sin cortes guardados</p>
+        </div>
+        <div v-else class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha del corte</th>
+                <th>Guardado el</th>
+                <th class="th-right">Efectivo</th>
+                <th class="th-right">Tarjeta</th>
+                <th class="th-right">Transacciones</th>
+                <th class="th-right">Productos</th>
+                <th class="th-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="corte in cortesFiltrados" :key="corte.id">
+                <td><code>{{ corte.corte_date }}</code></td>
+                <td class="td-fecha">{{ formatFecha(corte.created_at) }}</td>
+                <td class="td-right">${{ Number(corte.efectivo || 0).toFixed(2) }}</td>
+                <td class="td-right">${{ Number(corte.tarjeta || 0).toFixed(2) }}</td>
+                <td class="td-right">{{ corte.transacciones || 0 }}</td>
+                <td class="td-right">{{ contarProductosCorte(corte) }}</td>
+                <td class="td-right td-total">${{ Number(corte.total || 0).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </AppLayout>
 </template>
@@ -275,10 +336,12 @@ import { exportToCsv, exportToJson, exportFullBackup } from '../utils/export'
 const ventas    = ref([])
 const productos = ref([])
 const usuarios  = ref([])
+const cortes    = ref([])
 
 const tabActiva     = ref('ventas')
 const busquedaVenta = ref('')
 const busquedaProd  = ref('')
+const busquedaCorte = ref('')
 const ventaExpandida = ref(null)
 
 // ── Cargar datos desde el Backend SQL ─────────────────────
@@ -287,6 +350,7 @@ async function cargar() {
     ventas.value    = await api.getVentas()
     productos.value = await api.getProductos()
     usuarios.value  = await api.getUsuarios()
+    cortes.value    = await api.getCortes()
   } catch (e) {
     console.error('[DB View] Error al cargar datos:', e)
   }
@@ -312,6 +376,11 @@ const tabs = computed(() => [
     count: usuarios.value.length,
     icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'
   },
+  {
+    key: 'cortes', label: 'Cortes',
+    count: cortes.value.length,
+    icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>'
+  },
 ])
 
 // ── Totales para stats ────────────────────────────────────
@@ -319,6 +388,7 @@ const totales = computed(() => ({
   usuarios:  usuarios.value.length,
   productos: productos.value.length,
   ventas:    ventas.value.length,
+  cortes:    cortes.value.length,
   ingresos:  ventas.value.reduce((s, v) => s + (Number(v.total) || 0), 0).toFixed(2),
 }))
 
@@ -343,6 +413,15 @@ const productosFiltrados = computed(() => {
   )
 })
 
+const cortesFiltrados = computed(() => {
+  const q = busquedaCorte.value.trim().toLowerCase()
+  if (!q) return cortes.value
+  return cortes.value.filter(corte =>
+    String(corte.corte_date || '').toLowerCase().includes(q) ||
+    String(corte.created_at || '').toLowerCase().includes(q)
+  )
+})
+
 // ── Detalle colapsable ────────────────────────────────────
 function toggleDetalle(id) {
   ventaExpandida.value = ventaExpandida.value === id ? null : id
@@ -360,6 +439,19 @@ function formatFecha(iso) {
 function methodClass(m = '') {
   const map = { 'efectivo': 'method-cash', 'tarjeta': 'method-card', 'transferencia': 'method-transfer' }
   return map[m.toLowerCase()] || 'method-other'
+}
+
+function obtenerProductosCorte(corte) {
+  try {
+    const productosCorte = JSON.parse(corte?.productos_json || '[]')
+    return Array.isArray(productosCorte) ? productosCorte : []
+  } catch {
+    return []
+  }
+}
+
+function contarProductosCorte(corte) {
+  return obtenerProductosCorte(corte).length
 }
 
 // ── Exportar ventas ───────────────────────────────────────
@@ -404,6 +496,27 @@ function exportarUsuariosJson() {
   exportToJson(safe, `usuarios_${new Date().toISOString().slice(0,10)}.json`)
 }
 
+function exportarCortesCsv() {
+  if (!cortes.value.length) return alert('No hay cortes para exportar.')
+  const rows = cortes.value.map(corte => ({
+    corte_date: corte.corte_date,
+    created_at: formatFecha(corte.created_at),
+    efectivo: Number(corte.efectivo || 0).toFixed(2),
+    tarjeta: Number(corte.tarjeta || 0).toFixed(2),
+    transacciones: corte.transacciones || 0,
+    productos: contarProductosCorte(corte),
+    total: Number(corte.total || 0).toFixed(2),
+  }))
+  const cols = ['corte_date', 'created_at', 'efectivo', 'tarjeta', 'transacciones', 'productos', 'total']
+  const headers = ['Fecha del corte', 'Guardado el', 'Efectivo ($)', 'Tarjeta ($)', 'Transacciones', 'Productos', 'Total ($)']
+  exportToCsv(rows, cols, headers, `cortes_${new Date().toISOString().slice(0,10)}.csv`)
+}
+
+function exportarCortesJson() {
+  if (!cortes.value.length) return alert('No hay cortes para exportar.')
+  exportToJson(cortes.value, `cortes_${new Date().toISOString().slice(0,10)}.json`)
+}
+
 // ── Backup completo ───────────────────────────────────────
 function descargarBackupCompleto() {
   const safeUsuarios = usuarios.value.map(({ password, ...rest }) => rest)
@@ -411,6 +524,7 @@ function descargarBackupCompleto() {
     usuarios:  safeUsuarios,
     productos: productos.value,
     ventas:    ventas.value,
+    cortes:    cortes.value,
   })
 }
 </script>
@@ -457,6 +571,7 @@ function descargarBackupCompleto() {
 .dot-green  { background: #22c55e; }
 .dot-purple { background: #8b5cf6; }
 .dot-orange { background: #f97316; }
+.dot-red    { background: #ef4444; }
 .stat-num { font-weight: 700; color: var(--gray-800); }
 .stat-lbl { color: var(--gray-500); }
 
