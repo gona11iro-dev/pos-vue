@@ -141,6 +141,59 @@ app.delete('/api/ventas/:id', (req, res) => {
   }
 });
 
+// ── Cortes de caja ────────────────────────────────────────────────
+app.get('/api/cortes', (req, res) => {
+  const { date } = req.query;
+  try {
+    if (date) {
+      const corte = db.prepare('SELECT * FROM cortes_caja WHERE corte_date = ?').get(date);
+      return res.json(corte || null);
+    }
+    const cortes = db.prepare('SELECT * FROM cortes_caja ORDER BY corte_date DESC').all();
+    return res.json(cortes);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/cortes', (req, res) => {
+  const { corteDate, total, efectivo, tarjeta, transacciones, productos } = req.body;
+
+  if (!corteDate) {
+    return res.status(400).json({ error: 'corteDate es requerido' });
+  }
+
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO cortes_caja (corte_date, created_at, total, efectivo, tarjeta, transacciones, productos_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(corte_date) DO UPDATE SET
+        created_at = excluded.created_at,
+        total = excluded.total,
+        efectivo = excluded.efectivo,
+        tarjeta = excluded.tarjeta,
+        transacciones = excluded.transacciones,
+        productos_json = excluded.productos_json
+    `);
+
+    const nowIso = new Date().toISOString();
+    stmt.run(
+      corteDate,
+      nowIso,
+      Number(total || 0),
+      Number(efectivo || 0),
+      Number(tarjeta || 0),
+      Number(transacciones || 0),
+      JSON.stringify(productos || [])
+    );
+
+    const corte = db.prepare('SELECT * FROM cortes_caja WHERE corte_date = ?').get(corteDate);
+    return res.json({ success: true, corte });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Usuarios ──────────────────────────────────────────────────────
 app.get('/api/usuarios', (req, res) => {
   try {
@@ -195,4 +248,3 @@ app.post('/api/auth/change-password', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[PosServer] SQLite server running on http://localhost:${PORT}`);
 });
-

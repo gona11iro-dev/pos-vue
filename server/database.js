@@ -45,6 +45,17 @@ db.exec(`
     qty REAL NOT NULL,
     FOREIGN KEY (venta_id) REFERENCES ventas(id)
   );
+
+  CREATE TABLE IF NOT EXISTS cortes_caja (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    corte_date TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    total REAL NOT NULL DEFAULT 0,
+    efectivo REAL NOT NULL DEFAULT 0,
+    tarjeta REAL NOT NULL DEFAULT 0,
+    transacciones INTEGER NOT NULL DEFAULT 0,
+    productos_json TEXT NOT NULL DEFAULT '[]'
+  );
 `);
 
 // Seed: Usuario admin por defecto si no existe

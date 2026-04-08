@@ -132,6 +132,41 @@ async function handleNativeRoute(endpoint, method, body) {
     return { success: true };
   }
 
+  // Cortes de caja
+  if (endpoint === '/cortes' && method === 'GET') {
+    return await native.nativeQuery('SELECT * FROM cortes_caja ORDER BY corte_date DESC');
+  }
+  if (endpoint.startsWith('/cortes?date=') && method === 'GET') {
+    const corteDate = decodeURIComponent(endpoint.split('=')[1] || '');
+    const corte = await native.nativeQuery('SELECT * FROM cortes_caja WHERE corte_date = ? LIMIT 1', [corteDate]);
+    return corte?.[0] || null;
+  }
+  if (endpoint === '/cortes' && method === 'POST') {
+    const nowIso = new Date().toISOString();
+    await native.nativeRun(
+      `INSERT INTO cortes_caja (corte_date, created_at, total, efectivo, tarjeta, transacciones, productos_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(corte_date) DO UPDATE SET
+         created_at = excluded.created_at,
+         total = excluded.total,
+         efectivo = excluded.efectivo,
+         tarjeta = excluded.tarjeta,
+         transacciones = excluded.transacciones,
+         productos_json = excluded.productos_json`,
+      [
+        body.corteDate,
+        nowIso,
+        Number(body.total || 0),
+        Number(body.efectivo || 0),
+        Number(body.tarjeta || 0),
+        Number(body.transacciones || 0),
+        JSON.stringify(body.productos || [])
+      ]
+    );
+    const corte = await native.nativeQuery('SELECT * FROM cortes_caja WHERE corte_date = ? LIMIT 1', [body.corteDate]);
+    return { success: true, corte: corte?.[0] || null };
+  }
+
   // Usuarios
   if (endpoint === '/usuarios' && method === 'GET') {
     return await native.nativeQuery('SELECT * FROM usuarios');
@@ -175,10 +210,14 @@ export const api = {
   getVentas: () => apiFetch('/ventas'),
   registerVenta: (ventaData) => apiFetch('/ventas', { method: 'POST', body: ventaData }),
   deleteVenta: (id) => apiFetch(`/ventas/${id}`, { method: 'DELETE' }),
+
+  // Cortes de caja
+  getCortes: () => apiFetch('/cortes'),
+  getCorteByDate: (date) => apiFetch(`/cortes?date=${encodeURIComponent(date)}`),
+  saveCorte: (corteData) => apiFetch('/cortes', { method: 'POST', body: corteData }),
   
   // Usuarios
   getUsuarios: () => apiFetch('/usuarios'),
   saveUsuario: (user) => apiFetch('/usuarios', { method: 'POST', body: user }),
   deleteUsuario: (id) => apiFetch(`/usuarios/${id}`, { method: 'DELETE' }),
 };
-

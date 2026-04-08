@@ -7,6 +7,14 @@
           <p class="subtitle">{{ currentDate }}</p>
         </div>
         <div class="actions">
+          <button class="btn-corte" :disabled="savingCorte" @click="guardarCorteDiario">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            {{ savingCorte ? 'Guardando...' : 'Guardar corte diario' }}
+          </button>
           <button class="btn-download" @click="descargarCorte">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
@@ -15,6 +23,8 @@
           </button>
         </div>
       </div>
+      <p v-if="corteGuardadoMsg" class="save-msg">{{ corteGuardadoMsg }}</p>
+      <p v-if="corteErrorMsg" class="error-msg">{{ corteErrorMsg }}</p>
 
       <div class="summary-grid">
         <div class="card stat-card">
@@ -92,12 +102,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useVentasStore } from '../stores/ventas'
 import { exportToCsv } from '../utils/export'
+import { api } from '../api/client'
 
 const ventasStore = useVentasStore()
+const savingCorte = ref(false)
+const corteGuardadoMsg = ref('')
+const corteErrorMsg = ref('')
 
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('es-MX', { 
@@ -117,18 +131,18 @@ const resumen = computed(() => {
     total: 0,
     efectivo: 0,
     tarjeta: 0,
-    count: ventasActivas.length,
+    count: ventasHoy.length,
     productos: {}
   }
 
-  ventasActivas.forEach(v => {
+  ventasHoy.forEach(v => {
     stats.total += Number(v.total)
     if (v.method === 'Efectivo') stats.efectivo += Number(v.total)
     else stats.tarjeta += Number(v.total)
 
     v.items.forEach(item => {
       if (!stats.productos[item.barcode]) {
-        stats.productos[item.barcode] = { name: item.name, qty: 0, total: 0 }
+        stats.productos[item.barcode] = { barcode: item.barcode, name: item.name, qty: 0, total: 0 }
       }
       stats.productos[item.barcode].qty += Number(item.qty)
       stats.productos[item.barcode].total += (Number(item.qty) * Number(item.price))
@@ -154,6 +168,29 @@ function descargarCorte() {
   
   exportToCsv(data, columns, headers, `corte_caja_${date}.csv`)
 }
+
+async function guardarCorteDiario() {
+  corteGuardadoMsg.value = ''
+  corteErrorMsg.value = ''
+  savingCorte.value = true
+  try {
+    const date = new Date().toISOString().slice(0, 10)
+    const payload = {
+      corteDate: date,
+      total: resumen.value.total,
+      efectivo: resumen.value.efectivo,
+      tarjeta: resumen.value.tarjeta,
+      transacciones: resumen.value.count,
+      productos: resumen.value.productos
+    }
+    await api.saveCorte(payload)
+    corteGuardadoMsg.value = `Corte diario ${date} guardado correctamente en base de datos.`
+  } catch (error) {
+    corteErrorMsg.value = `No se pudo guardar el corte: ${error.message || 'error desconocido'}`
+  } finally {
+    savingCorte.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -170,6 +207,7 @@ function descargarCorte() {
   cursor: pointer; transition: all 0.2s;
 }
 .btn-corte:hover { background: #b91c1c; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.btn-corte:disabled { opacity: 0.65; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .actions .btn-download {
   display: flex; align-items: center; gap: 8px;
@@ -178,6 +216,8 @@ function descargarCorte() {
   cursor: pointer; transition: all 0.2s;
 }
 .actions .btn-download:hover { background: var(--success-dark); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.save-msg { margin-top: -10px; margin-bottom: 14px; color: var(--success-dark); font-weight: 700; }
+.error-msg { margin-top: -10px; margin-bottom: 14px; color: var(--danger); font-weight: 700; }
 
 .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-8); }
 
