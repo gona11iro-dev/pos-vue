@@ -327,8 +327,12 @@ const productosFiltrados = computed(() => {
   return productos.value.filter(p => (p.unit || 'pza') === filtroActivo.value)
 })
 
-function onBarcodeDetected(code) {
-  barcode.value = code
+function onBarcodeDetected(payload) {
+  const detectedCode = typeof payload === 'string'
+    ? payload
+    : payload?.code || payload?.rawCode || ''
+
+  barcode.value = detectedCode
   mostrarScanner.value = false
 }
 

@@ -60,6 +60,7 @@
 <script setup>
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
+import { normalizeScannedBarcode } from '../utils/barcode'
 
 const props = defineProps({
   visible: {
@@ -147,9 +148,16 @@ async function iniciarEscaner() {
   }
 }
 
-function onCodigoDetectado(decodedText) {
-  ultimoCodigo.value = decodedText
-  emit('detected', decodedText)
+function onCodigoDetectado(decodedText, decodedResult) {
+  const formatName = decodedResult?.result?.format?.formatName || ''
+  const normalizedCode = normalizeScannedBarcode(decodedText, formatName)
+
+  ultimoCodigo.value = normalizedCode
+  emit('detected', {
+    code: normalizedCode,
+    rawCode: decodedText,
+    formatName,
+  })
   detenerEscaner()
 }
 

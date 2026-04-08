@@ -6,7 +6,19 @@
       <div v-if="scanMsg" class="scan-feedback" :class="scanMsgType">
         <svg v-if="scanMsgType === 'success'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
         <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-        {{ scanMsg }}
+        <span class="scan-feedback__text">{{ scanMsg }}</span>
+        <button
+          v-if="scanMsgType === 'error'"
+          class="scan-feedback__close"
+          type="button"
+          @click="cerrarFeedback"
+          aria-label="Cerrar mensaje"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       <!-- ==========================================
@@ -287,6 +299,7 @@ import BarcodeScanner from '../components/BarcodeScanner.vue'
 import { useAuthStore } from '../stores/auth'
 import { useProductosStore } from '../stores/productos'
 import { useVentasStore } from '../stores/ventas'
+import { sanitizeBarcode } from '../utils/barcode'
 
 const auth = useAuthStore()
 const productosStore = useProductosStore()
@@ -309,10 +322,26 @@ const scanMsg = ref('')
 const scanMsgType = ref('success')
 let scanMsgTimer = null
 function mostrarFeedback(msg, type = 'success') {
+  if (scanMsgTimer) {
+    clearTimeout(scanMsgTimer)
+    scanMsgTimer = null
+  }
   scanMsg.value = msg
   scanMsgType.value = type
-  if (scanMsgTimer) clearTimeout(scanMsgTimer)
-  scanMsgTimer = setTimeout(() => { scanMsg.value = '' }, 3000)
+
+  if (type !== 'error') {
+    scanMsgTimer = setTimeout(() => {
+      cerrarFeedback()
+    }, 3000)
+  }
+}
+
+function cerrarFeedback() {
+  if (scanMsgTimer) {
+    clearTimeout(scanMsgTimer)
+    scanMsgTimer = null
+  }
+  scanMsg.value = ''
 }
 
 // Datos y Búsqueda
@@ -333,9 +362,16 @@ const listaProductos = computed(() => {
 })
 
 const productosFiltrados = computed(() => {
-  const q = buscar.value.trim().toLowerCase()
+  const textoBusqueda = buscar.value.trim()
+  const q = textoBusqueda.toLowerCase()
+  const barcodeQuery = sanitizeBarcode(textoBusqueda).toLowerCase()
+
   if (!q) return listaProductos.value
-  return listaProductos.value.filter(p => p.name.toLowerCase().includes(q) || String(p.barcode).includes(q))
+
+  return listaProductos.value.filter(p => {
+    const barcode = sanitizeBarcode(p.barcode).toLowerCase()
+    return p.name.toLowerCase().includes(q) || barcode.includes(barcodeQuery)
+  })
 })
 
 // Carrito
@@ -362,6 +398,10 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  if (scanMsgTimer) {
+    clearTimeout(scanMsgTimer)
+    scanMsgTimer = null
+  }
 })
 
 // ── Acciones de Venta ─────────────────────────────────
@@ -382,9 +422,17 @@ function agregar(p) {
 }
 
 function agregarRapido() {
-  const q = buscar.value.trim().toLowerCase()
-  if (!q) return
-  const p = listaProductos.value.find(p => String(p.barcode) === buscar.value || p.name.toLowerCase() === q)
+  const textoBusqueda = buscar.value.trim()
+  const q = textoBusqueda.toLowerCase()
+  const barcodeBuscado = sanitizeBarcode(textoBusqueda)
+
+  if (!barcodeBuscado && !q) return
+
+  const p = listaProductos.value.find(p =>
+    sanitizeBarcode(p.barcode) === barcodeBuscado ||
+    p.name.toLowerCase() === q
+  )
+
   if (p) {
     agregar(p)
     buscar.value = ''
@@ -439,10 +487,21 @@ function confirmarPeso() {
 }
 
 // ── Escáner y Pago ─────────────────────────────────
-function onBarcodeDetected(code) {
+function extraerCodigoDetectado(payload) {
+  if (typeof payload === 'string') {
+    return sanitizeBarcode(payload)
+  }
+
+  return sanitizeBarcode(payload?.code || payload?.rawCode)
+}
+
+function onBarcodeDetected(payload) {
   mostrarScanner.value = false
+  const code = extraerCodigoDetectado(payload)
   if (!code) return
-  const p = listaProductos.value.find(prod => String(prod.barcode).trim() === String(code).trim())
+
+  const p = listaProductos.value.find(prod => sanitizeBarcode(prod.barcode) === code)
+
   if (p) {
     agregar(p)
     mostrarFeedback(`Escaneado: ${p.name}`)
@@ -494,9 +553,25 @@ async function confirmarPago() {
   z-index: 3000; display: flex; align-items: center; gap: 8px;
   padding: 12px 24px; border-radius: 999px; color: #fff; font-weight: 600;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: slideDown 0.3s ease;
+  max-width: min(92vw, 560px);
 }
 .scan-feedback.success { background: #16a34a; }
 .scan-feedback.error { background: #dc2626; }
+.scan-feedback__text { min-width: 0; }
+.scan-feedback__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.scan-feedback__close:hover { background: rgba(255,255,255,0.26); }
 @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
 
 /* --- VISTA PC --- */
