@@ -1,12 +1,44 @@
 import express from 'express';
 import cors from 'cors';
-import db from './database.js';
+import db, { databaseFilePath } from './database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const allowedOrigins = String(process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
-app.use(cors());
+const corsOptions = allowedOrigins.length
+  ? {
+      origin(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error('Origen no permitido por CORS'));
+      }
+    }
+  : {};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'pos-vue-api',
+    status: 'ok',
+    time: new Date().toISOString(),
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString(),
+  });
+});
 
 // ── Auth ───────────────────────────────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
@@ -32,18 +64,18 @@ app.get('/api/productos', (req, res) => {
 });
 
 app.post('/api/productos', (req, res) => {
-  const { barcode, name, price, stock, category } = req.body;
+  const { barcode, name, price, stock, unit } = req.body;
   try {
     const stmt = db.prepare(`
-      INSERT INTO productos (barcode, name, price, stock, category)
+      INSERT INTO productos (barcode, name, price, stock, unit)
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(barcode) DO UPDATE SET
         name = excluded.name,
         price = excluded.price,
         stock = excluded.stock,
-        category = excluded.category
+        unit = excluded.unit
     `);
-    stmt.run(barcode, name, price, stock, category);
+    stmt.run(barcode, name, price, stock, unit || 'pza');
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -90,16 +122,17 @@ app.post('/api/ventas', (req, res) => {
 
     // 2. Insertar artículos y actualizar stock
     const insertItem = db.prepare(`
-      INSERT INTO venta_items (venta_id, barcode, name, price, qty)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO venta_items (venta_id, barcode, name, price, qty, unit)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
     const updateStock = db.prepare('UPDATE productos SET stock = stock - ? WHERE barcode = ?');
 
     for (const item of items) {
-      insertItem.run(ventaId, item.barcode, item.name, item.price, item.qty);
-      // Solo descontar stock si no es pesaje granel (regla de tu POS: solo 'pza')
-      // NOTA: Para simplificar, si no viene unidad o es 'pza', descontamos.
-      updateStock.run(item.qty, item.barcode);
+      const itemUnit = item.unit || 'pza';
+      insertItem.run(ventaId, item.barcode, item.name, item.price, item.qty, itemUnit);
+      if (itemUnit === 'pza') {
+        updateStock.run(item.qty, item.barcode);
+      }
     }
     
     return ventaId;
@@ -123,7 +156,9 @@ app.delete('/api/ventas/:id', (req, res) => {
     // 2. Devolver stock
     const updateStock = db.prepare('UPDATE productos SET stock = stock + ? WHERE barcode = ?');
     for (const item of items) {
-      updateStock.run(item.qty, item.barcode);
+      if (!item.unit || item.unit === 'pza') {
+        updateStock.run(item.qty, item.barcode);
+      }
     }
 
     // 3. Borrar items y luego la venta
@@ -246,5 +281,9 @@ app.post('/api/auth/change-password', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[PosServer] SQLite server running on http://localhost:${PORT}`);
+  console.log(`[PosServer] SQLite server running on port ${PORT}`);
+  console.log(`[PosServer] DB path: ${databaseFilePath}`);
+  if (allowedOrigins.length) {
+    console.log(`[PosServer] CORS origins: ${allowedOrigins.join(', ')}`);
+  }
 });

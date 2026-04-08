@@ -1,9 +1,15 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, 'pos.sqlite');
+const configuredDbPath = process.env.SQLITE_DB_PATH || process.env.DATABASE_PATH || path.join(__dirname, 'pos.sqlite');
+const dbPath = path.isAbsolute(configuredDbPath)
+  ? configuredDbPath
+  : path.resolve(process.cwd(), configuredDbPath);
+
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const db = new Database(dbPath);
 
@@ -23,6 +29,7 @@ db.exec(`
     name TEXT NOT NULL,
     price REAL NOT NULL,
     stock REAL NOT NULL DEFAULT 0,
+    unit TEXT DEFAULT 'pza',
     category TEXT
   );
 
@@ -43,6 +50,7 @@ db.exec(`
     name TEXT NOT NULL,
     price REAL NOT NULL,
     qty REAL NOT NULL,
+    unit TEXT DEFAULT 'pza',
     FOREIGN KEY (venta_id) REFERENCES ventas(id)
   );
 
@@ -58,6 +66,21 @@ db.exec(`
   );
 `);
 
+function ensureColumn(tableName, columnName, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const hasColumn = columns.some(column => column.name === columnName);
+
+  if (!hasColumn) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
+}
+
+ensureColumn('productos', 'unit', "TEXT DEFAULT 'pza'");
+ensureColumn('venta_items', 'unit', "TEXT DEFAULT 'pza'");
+
+db.prepare(`UPDATE productos SET unit = 'pza' WHERE unit IS NULL OR TRIM(unit) = ''`).run();
+db.prepare(`UPDATE venta_items SET unit = 'pza' WHERE unit IS NULL OR TRIM(unit) = ''`).run();
+
 // Seed: Usuario admin por defecto si no existe
 const seedAdmin = db.prepare('SELECT * FROM usuarios WHERE username = ?').get('admin');
 if (!seedAdmin) {
@@ -67,3 +90,4 @@ if (!seedAdmin) {
 }
 
 export default db;
+export { dbPath as databaseFilePath };

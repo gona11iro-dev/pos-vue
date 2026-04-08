@@ -1,38 +1,49 @@
 # pos-vue
 
-This template should help get you started developing with Vue 3 in Vite.
+POS hecho con `Vue 3 + Vite` en frontend y `Express + SQLite` en backend.
 
-## Recommended IDE Setup
+## Requisitos
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- `Node.js 20.19+`
+- `npm`
 
-## Recommended Browser Setup
+## Desarrollo local
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+Instala dependencias:
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+Levanta frontend y backend al mismo tiempo:
 
 ```sh
-npm run dev
+npm run dev-all
 ```
 
-### Compile and Minify for Production
+Servicios locales:
 
-```sh
-npm run build
-```
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3000`
+- Healthcheck backend: `http://localhost:3000/api/health`
+
+## Variables de entorno
+
+Toma como base el archivo [.env.example](./.env.example).
+
+Variables importantes:
+
+- `VITE_API_URL`: URL del backend para la web
+- `PORT`: puerto del backend
+- `SQLITE_DB_PATH`: ruta del archivo SQLite
+- `ALLOWED_ORIGINS`: orígenes permitidos por CORS separados por coma
+
+## Deploy
+
+La ruta recomendada para este proyecto es:
+
+- Frontend en `Vercel`
+- Backend en `Railway`
+- SQLite persistente en un `Volume` de Railway
+
+La guía completa quedó en [DEPLOY.md](./DEPLOY.md).

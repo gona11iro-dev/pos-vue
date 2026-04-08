@@ -31,7 +31,8 @@ export const useVentasStore = defineStore('ventas', () => {
         barcode: item.barcode,
         name: item.name,
         price: item.price,
-        qty: item.qty
+        qty: item.qty,
+        unit: item.unit || 'pza'
       }))
     }
 

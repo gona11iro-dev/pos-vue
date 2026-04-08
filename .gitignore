@@ -39,3 +39,9 @@ __screenshots__/
 *.timestamp-*-*.mjs
 
 dist_electron/
+server/*.sqlite
+server/*.sqlite-*
+data/
+.env
+.env.*
+!.env.example
