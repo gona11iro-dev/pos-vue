@@ -1,8 +1,13 @@
 {
   "name": "pos-vue",
   "version": "0.1.0",
+  "description": "POS de escritorio y navegador para Linux con Vue, Electron, Express y SQLite.",
   "private": true,
   "type": "module",
+  "author": {
+    "name": "gona11iro-dev",
+    "email": "gona11iro@gmail.com"
+  },
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
@@ -12,7 +17,7 @@
     "preview": "vite preview",
     "electron": "electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"node scripts/electron-dev.js\"",
-    "electron:build": "npm run build && electron-builder --linux AppImage"
+    "electron:build": "npm run build && electron-builder --linux dir deb && node scripts/package-linux-bundle.js"
   },
   "main": "electron/main.js",
   "dependencies": {
@@ -53,10 +58,16 @@
       "node_modules/better-sqlite3/**/*"
     ],
     "linux": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "icon": "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
       "target": [
-        "AppImage"
+        "dir",
+        "deb"
       ],
       "category": "Office"
+    },
+    "deb": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     }
   },
   "engines": {

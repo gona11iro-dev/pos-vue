@@ -31,7 +31,7 @@ Servicios locales:
 
 El proyecto ya puede correr como app de escritorio para Linux usando Electron. La app levanta:
 
-- Ventana Electron para el frontend
+- Un lanzador para abrir el POS en escritorio o navegador
 - API Express embebida
 - SQLite persistente dentro del directorio de usuario de la app
 
@@ -41,13 +41,40 @@ Modo desarrollo:
 npm run electron:dev
 ```
 
-Empaquetar Linux (`AppImage`):
+Empaquetar Linux:
 
 ```sh
 npm run electron:build
 ```
 
-El binario generado queda en `dist-electron/`.
+Esto genera dos opciones:
+
+- `dist-electron/POS Tio Ale-0.1.0-linux-x64.tar.gz`: bundle portable con `install.sh`
+- `dist-electron/POS Tio Ale-0.1.0-amd64.deb`: paquete para Debian, Ubuntu, Kali y derivadas
+
+Uso:
+
+```sh
+cd dist-electron
+tar -xzf "POS Tio Ale-0.1.0-linux-x64.tar.gz"
+cd "POS Tio Ale-0.1.0-linux-x64"
+./install.sh
+```
+
+### Abrir con doble clic
+
+El bundle `.tar.gz` ya incluye `install.sh`, que:
+
+- copia la app a `~/.local/opt/pos-tio-ale`
+- crea acceso en el menú
+- crea acceso en el escritorio si existe `~/Desktop` o `~/Escritorio`
+- usa el icono del APK Android del proyecto
+
+Si estás en Debian, Ubuntu o Kali también puedes instalar el `.deb`:
+
+```sh
+sudo apt install ./dist-electron/POS\ Tio\ Ale-0.1.0-amd64.deb
+```
 
 Notas:
 

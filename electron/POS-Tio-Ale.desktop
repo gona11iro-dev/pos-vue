@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=POS Tio Ale
+Comment=Abre el POS de escritorio o navegador
+Exec=/home/kali/proyecto-tio-ale/pos-vue/dist-electron/linux-unpacked/pos-vue
+Path=/home/kali/proyecto-tio-ale/pos-vue/dist-electron/linux-unpacked
+Terminal=false
+StartupNotify=true
+Categories=Office;
+Icon=/home/kali/proyecto-tio-ale/pos-vue/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
