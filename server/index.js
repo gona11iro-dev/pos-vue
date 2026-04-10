@@ -1,9 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import db, { databaseFilePath } from './database.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, '..');
+const distDir = path.join(projectRoot, 'dist');
+const shouldServeWebApp = process.env.SERVE_WEB_APP === 'true';
 const allowedOrigins = String(process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGIN || '')
   .split(',')
   .map(origin => origin.trim())
@@ -26,6 +32,11 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get('/', (_req, res) => {
+  if (shouldServeWebApp) {
+    res.sendFile(path.join(distDir, 'index.html'));
+    return;
+  }
+
   res.json({
     service: 'pos-vue-api',
     status: 'ok',
@@ -280,10 +291,28 @@ app.post('/api/auth/change-password', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[PosServer] SQLite server running on port ${PORT}`);
-  console.log(`[PosServer] DB path: ${databaseFilePath}`);
-  if (allowedOrigins.length) {
-    console.log(`[PosServer] CORS origins: ${allowedOrigins.join(', ')}`);
-  }
-});
+if (shouldServeWebApp) {
+  app.use(express.static(distDir));
+
+  app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+}
+
+export function startServer(port = PORT) {
+  const server = app.listen(port, () => {
+    console.log(`[PosServer] SQLite server running on port ${port}`);
+    console.log(`[PosServer] DB path: ${databaseFilePath}`);
+    if (allowedOrigins.length) {
+      console.log(`[PosServer] CORS origins: ${allowedOrigins.join(', ')}`);
+    }
+  });
+
+  return server;
+}
+
+const entryFile = process.argv[1] ? fileURLToPath(import.meta.url) === process.argv[1] : false;
+
+if (entryFile) {
+  startServer();
+}

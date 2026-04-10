@@ -27,6 +27,33 @@ Servicios locales:
 - Backend: `http://localhost:3000`
 - Healthcheck backend: `http://localhost:3000/api/health`
 
+## Escritorio con Electron
+
+El proyecto ya puede correr como app de escritorio para Linux usando Electron. La app levanta:
+
+- Ventana Electron para el frontend
+- API Express embebida
+- SQLite persistente dentro del directorio de usuario de la app
+
+Modo desarrollo:
+
+```sh
+npm run electron:dev
+```
+
+Empaquetar Linux (`AppImage`):
+
+```sh
+npm run electron:build
+```
+
+El binario generado queda en `dist-electron/`.
+
+Notas:
+
+- Hace falta instalar `electron` y `electron-builder` antes de usar esos scripts.
+- La base de datos en escritorio no se guarda dentro del repo, sino en el `userData` de Electron.
+
 ## Variables de entorno
 
 Toma como base el archivo [.env.example](./.env.example).

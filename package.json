@@ -1,6 +1,6 @@
 {
   "name": "pos-vue",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,12 @@
     "start": "node server/index.js",
     "dev-all": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron": "electron .",
+    "electron:dev": "concurrently -k \"npm run dev\" \"node scripts/electron-dev.js\"",
+    "electron:build": "npm run build && electron-builder --linux AppImage"
   },
+  "main": "electron/main.js",
   "dependencies": {
     "@capacitor-community/sqlite": "^8.1.0",
     "@capacitor/android": "^8.3.0",
@@ -28,8 +32,32 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.8.1",
     "vite": "^7.3.1",
     "vite-plugin-vue-devtools": "^8.0.7"
+  },
+  "build": {
+    "appId": "com.tioale.posvue",
+    "productName": "POS Tio Ale",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "server/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    }
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

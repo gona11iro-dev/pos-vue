@@ -2,7 +2,8 @@ import { Capacitor } from '@capacitor/core';
 import * as native from './sqliteDriver';
 
 const isAndroid = Capacitor.getPlatform() === 'android';
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const desktopApiUrl = window.posDesktop?.apiUrl;
+const API_URL = desktopApiUrl || import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Cliente de API simplificado para comunicarse con el servidor SQLite.

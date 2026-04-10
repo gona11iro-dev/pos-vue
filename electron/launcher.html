@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>POS Tio Ale Launcher</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef3f8;
+        --card: rgba(255, 255, 255, 0.94);
+        --text: #14233b;
+        --muted: #60708a;
+        --border: rgba(20, 35, 59, 0.1);
+        --primary: #0f62fe;
+        --primary-dark: #0a4ac0;
+        --accent: #f59e0b;
+        --success: #15803d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(15, 98, 254, 0.18), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.18), transparent 22%),
+          linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+        color: var(--text);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .panel {
+        width: min(720px, 100%);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: 0 32px 80px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
+      }
+
+      .hero {
+        padding: 28px 28px 12px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 98, 254, 0.1);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 16px 0 8px;
+        font-size: 32px;
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        padding: 20px 28px 28px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+        background: #fff;
+      }
+
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 20px;
+      }
+
+      .card p {
+        margin-bottom: 16px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      button,
+      select {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 12px 14px;
+        background: var(--primary);
+        color: #fff;
+        border-color: transparent;
+        font-weight: 700;
+      }
+
+      button:hover {
+        background: var(--primary-dark);
+      }
+
+      button.secondary {
+        background: #fff;
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      select {
+        padding: 12px 14px;
+        background: #fff;
+        color: var(--text);
+      }
+
+      .status {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(21, 128, 61, 0.08);
+        color: var(--success);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .small {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: grid;
+        gap: 10px;
+      }
+
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <section class="hero">
+        <span class="eyebrow">Modo de apertura</span>
+        <h1>Ejecuta el POS en escritorio o en navegador</h1>
+        <p>Ambos modos usan el mismo servidor local y la misma base SQLite. Puedes abrir uno o ambos al mismo tiempo.</p>
+        <div id="status" class="status">Iniciando servidor local...</div>
+        <div id="dbPath" class="small"></div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Modo Escritorio</h2>
+          <p>Abre la app en una ventana Electron local.</p>
+          <div class="actions">
+            <button id="openDesktop">Abrir escritorio</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Modo Navegador</h2>
+          <p>Abre la misma app en tu navegador preferido apuntando al servidor local.</p>
+          <div class="stack">
+            <select id="browserSelect"></select>
+            <button id="openBrowser">Abrir navegador</button>
+            <button id="openDefault" class="secondary">Abrir navegador predeterminado</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const browserSelect = document.getElementById('browserSelect');
+      const status = document.getElementById('status');
+      const dbPath = document.getElementById('dbPath');
+
+      async function loadState() {
+        const state = await window.posDesktop.launcher.getState();
+        status.textContent = `Servidor activo en ${state.appUrl}`;
+        dbPath.textContent = `Base de datos compartida: ${state.dbPath}`;
+
+        browserSelect.innerHTML = '';
+        for (const browser of state.browsers) {
+          const option = document.createElement('option');
+          option.value = browser.id;
+          option.textContent = browser.label;
+          browserSelect.appendChild(option);
+        }
+      }
+
+      document.getElementById('openDesktop').addEventListener('click', async () => {
+        await window.posDesktop.launcher.openDesktop();
+      });
+
+      document.getElementById('openBrowser').addEventListener('click', async () => {
+        const browserId = browserSelect.value;
+        const result = await window.posDesktop.launcher.openBrowser(browserId);
+        if (!result.ok) {
+          status.textContent = result.error;
+        }
+      });
+
+      document.getElementById('openDefault').addEventListener('click', async () => {
+        await window.posDesktop.launcher.openDefaultBrowser();
+      });
+
+      loadState().catch(error => {
+        status.textContent = error.message || 'No se pudo inicializar el lanzador.';
+      });
+    </script>
+  </body>
+  </html>

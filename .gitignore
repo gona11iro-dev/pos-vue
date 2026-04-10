@@ -10,9 +10,12 @@ lerna-debug.log*
 node_modules
 .DS_Store
 dist
+dist-electron
 dist-ssr
 coverage
 *.local
+.codex
+squashfs-root/
 
 # Editor directories and files
 .vscode/*
