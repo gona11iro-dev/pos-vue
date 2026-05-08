@@ -1,6 +1,6 @@
 {
   "name": "pos-vue",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "POS de escritorio y navegador para Linux con Vue, Electron, Express y SQLite.",
   "private": true,
   "type": "module",

@@ -464,6 +464,7 @@ async function cambiarPassword() {
 }
 
 .desktop-chrome {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -511,6 +512,7 @@ async function cambiarPassword() {
 
 .desktop-body {
   flex: 1;
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -751,6 +753,7 @@ async function cambiarPassword() {
 .desktop-stage {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(250, 252, 255, 0.52), rgba(244, 247, 251, 0.96));
@@ -758,6 +761,7 @@ async function cambiarPassword() {
 }
 
 .desktop-toolbar {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -865,13 +869,16 @@ async function cambiarPassword() {
 }
 
 .main-content {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
+  min-height: 0;
 }
 
 .main-content--desktop {
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .main-content--mobile {
@@ -1244,6 +1251,9 @@ async function cambiarPassword() {
 
   .app-layout.is-tablet-view .desktop-body {
     display: block;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .app-layout.is-tablet-view .sidebar {
