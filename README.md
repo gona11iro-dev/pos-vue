@@ -49,15 +49,15 @@ npm run electron:build
 
 Esto genera dos opciones:
 
-- `dist-electron/POS Tio Ale-0.1.0-linux-x64.tar.gz`: bundle portable con `install.sh`
-- `dist-electron/POS Tio Ale-0.1.0-amd64.deb`: paquete para Debian, Ubuntu, Kali y derivadas
+- `dist-electron/POS Tio Ale-0.1.1-linux-x64.tar.gz`: bundle portable con `install.sh`
+- `dist-electron/POS Tio Ale-0.1.1-amd64.deb`: paquete para Debian, Ubuntu, Kali y derivadas
 
 Uso:
 
 ```sh
 cd dist-electron
-tar -xzf "POS Tio Ale-0.1.0-linux-x64.tar.gz"
-cd "POS Tio Ale-0.1.0-linux-x64"
+tar -xzf "POS Tio Ale-0.1.1-linux-x64.tar.gz"
+cd "POS Tio Ale-0.1.1-linux-x64"
 ./install.sh
 ```
 
@@ -73,7 +73,7 @@ El bundle `.tar.gz` ya incluye `install.sh`, que:
 Si estás en Debian, Ubuntu o Kali también puedes instalar el `.deb`:
 
 ```sh
-sudo apt install ./dist-electron/POS\ Tio\ Ale-0.1.0-amd64.deb
+sudo apt install ./dist-electron/POS\ Tio\ Ale-0.1.1-amd64.deb
 ```
 
 Notas:

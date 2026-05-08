@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, shell } from 'electron';
 import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,11 +50,20 @@ function findInstalledBrowsers() {
 }
 
 function createDesktopWindow() {
+  const { workAreaSize } = screen.getPrimaryDisplay();
+  const minWidth = Math.min(900, Math.max(640, workAreaSize.width - 80));
+  const minHeight = Math.min(620, Math.max(480, workAreaSize.height - 80));
+  const width = Math.min(1366, Math.max(minWidth, Math.floor(workAreaSize.width * 0.92)));
+  const height = Math.min(900, Math.max(minHeight, Math.floor(workAreaSize.height * 0.9)));
+
   mainWindow = new BrowserWindow({
-    width: 1366,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 720,
+    width,
+    height,
+    minWidth,
+    minHeight,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

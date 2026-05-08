@@ -435,17 +435,24 @@ async function cambiarPassword() {
 .app-layout {
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   --layout-shell-padding: 24px;
 }
 
 .desktop-shell {
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   padding: var(--layout-shell-padding);
+  overflow: hidden;
 }
 
 .desktop-frame {
-  min-height: calc(100vh - 48px);
+  height: calc(100vh - var(--layout-shell-padding) - var(--layout-shell-padding));
+  height: calc(100dvh - var(--layout-shell-padding) - var(--layout-shell-padding));
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface-soft);
@@ -508,16 +515,19 @@ async function cambiarPassword() {
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   position: relative;
+  overflow: hidden;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-height: 0;
   padding: 24px 18px 18px;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-y: auto;
 }
 
 .sidebar-brand {
@@ -740,9 +750,11 @@ async function cambiarPassword() {
 
 .desktop-stage {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, rgba(250, 252, 255, 0.52), rgba(244, 247, 251, 0.96));
+  overflow: hidden;
 }
 
 .desktop-toolbar {
@@ -1204,7 +1216,9 @@ async function cambiarPassword() {
   }
 
   .app-layout.is-tablet-view .desktop-frame {
-    min-height: calc(100vh - 28px);
+    height: calc(100vh - var(--layout-shell-padding) - var(--layout-shell-padding));
+    height: calc(100dvh - var(--layout-shell-padding) - var(--layout-shell-padding));
+    min-height: 0;
     border-radius: 24px;
   }
 
@@ -1264,6 +1278,38 @@ async function cambiarPassword() {
 
   .app-layout.is-tablet-view .desktop-toolbar__actions {
     justify-content: flex-start;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 821px) {
+  .app-layout {
+    --layout-shell-padding: 12px;
+  }
+
+  .desktop-chrome {
+    height: 52px;
+  }
+
+  .desktop-toolbar {
+    padding: 18px 22px 14px;
+  }
+
+  .desktop-toolbar__copy h1 {
+    margin: 6px 0 4px;
+    font-size: 1.65rem;
+  }
+
+  .desktop-toolbar__copy p {
+    font-size: var(--text-sm);
+  }
+
+  .sidebar {
+    gap: 12px;
+    padding: 16px 14px;
+  }
+
+  .sidebar-note {
+    display: none;
   }
 }
 
