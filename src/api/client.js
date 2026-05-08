@@ -107,12 +107,13 @@ async function handleNativeRoute(endpoint, method, body) {
 
     for (let item of body.items) {
       const bcode = String(item.barcode).trim();
+      const itemUnit = item.unit || 'pza';
       await native.nativeRun(
-        'INSERT INTO venta_items (venta_id, barcode, name, price, qty) VALUES (?, ?, ?, ?, ?)',
-        [ventaId, bcode, item.name, item.price, item.qty]
+        'INSERT INTO venta_items (venta_id, barcode, name, price, qty, unit) VALUES (?, ?, ?, ?, ?, ?)',
+        [ventaId, bcode, item.name, item.price, item.qty, itemUnit]
       );
       // Actualizar stock si es por pieza
-      if (item.unit === 'pza' || !item.unit) {
+      if (itemUnit === 'pza') {
         await native.nativeRun('UPDATE productos SET stock = stock - ? WHERE barcode = ?', [item.qty, bcode]);
       }
     }
@@ -125,7 +126,9 @@ async function handleNativeRoute(endpoint, method, body) {
     const items = await native.nativeQuery('SELECT * FROM venta_items WHERE venta_id = ?', [id]);
     // 2. Devolver stock
     for (const item of items) {
-      await native.nativeRun('UPDATE productos SET stock = stock + ? WHERE barcode = ?', [item.qty, item.barcode]);
+      if (!item.unit || item.unit === 'pza') {
+        await native.nativeRun('UPDATE productos SET stock = stock + ? WHERE barcode = ?', [item.qty, item.barcode]);
+      }
     }
     // 3. Borrar
     await native.nativeRun('DELETE FROM venta_items WHERE venta_id = ?', [id]);
@@ -217,6 +220,21 @@ export const api = {
   getCorteByDate: (date) => apiFetch(`/cortes?date=${encodeURIComponent(date)}`),
   saveCorte: (corteData) => apiFetch('/cortes', { method: 'POST', body: corteData }),
   
+  // Pollos
+  getPollos: () => apiFetch('/pollos'),
+  savePollo: (pollo) => apiFetch('/pollos', { method: 'POST', body: pollo }),
+  deletePollo: (id) => apiFetch(`/pollos/${id}`, { method: 'DELETE' }),
+
+  // Ventas Pollo
+  getVentasPollo: () => apiFetch('/ventas_pollo'),
+  registerVentaPollo: (ventaData) => apiFetch('/ventas_pollo', { method: 'POST', body: ventaData }),
+  deleteVentaPollo: (id) => apiFetch(`/ventas_pollo/${id}`, { method: 'DELETE' }),
+
+  // Cortes Pollo
+  getCortesPollo: () => apiFetch('/cortes_pollo'),
+  getCortePolloByDate: (date) => apiFetch(`/cortes_pollo?date=${encodeURIComponent(date)}`),
+  saveCortePollo: (corteData) => apiFetch('/cortes_pollo', { method: 'POST', body: corteData }),
+
   // Usuarios
   getUsuarios: () => apiFetch('/usuarios'),
   saveUsuario: (user) => apiFetch('/usuarios', { method: 'POST', body: user }),

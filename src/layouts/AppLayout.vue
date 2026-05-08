@@ -235,6 +235,11 @@ const routeMetaMap = {
     description: 'Flujo de cobro con ticket fijo, catálogo y acciones rápidas para mostrador.',
     helper: 'Busca productos, arma el ticket y cobra sin salir de una sola pantalla.'
   },
+  polleria: {
+    label: 'Pollería',
+    description: 'Cobro de pollo separado.',
+    helper: 'Selecciona las piezas o pollo entero para venta.'
+  },
   historial: {
     label: 'Historial de ventas',
     description: 'Consulta tickets recientes, detalles por venta y movimientos registrados.',
@@ -322,6 +327,7 @@ const mobileMenuItems = computed(() => {
   if (currentRole.value === 'admin') {
     return [
       { to: '/dashboard', label: 'Inicio', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
+      { to: '/polleria', label: 'Venta de pollo', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
       { to: '/historial', label: 'Historial', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' },
       { to: '/corte', label: 'Corte', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12A10 10 0 0015 21v-9z"/><path d="M12 2A10 10 0 0012 22"/><path d="M15 3A10 10 0 0115 21"/></svg>' },
       { to: '/productos', label: 'Productos', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>' },
@@ -333,6 +339,7 @@ const mobileMenuItems = computed(() => {
 
   return [
     { to: '/ventas', label: 'Hacer Venta', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+    { to: '/polleria', label: 'Venta de pollo', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
     { to: '/historial', label: 'Historial de Venta', icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
   ]
 })
@@ -345,6 +352,10 @@ const menuCompleto = [
   {
     to: '/ventas', label: 'Venta Nueva', roles: ['cajero'],
     icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>'
+  },
+  {
+    to: '/polleria', label: 'Venta de pollo', roles: ['admin', 'cajero'],
+    icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
   },
   {
     to: '/historial', label: 'Historial', roles: ['admin', 'cajero'],

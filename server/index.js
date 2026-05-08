@@ -291,6 +291,147 @@ app.post('/api/auth/change-password', (req, res) => {
   }
 });
 
+// ── Pollos ─────────────────────────────────────────────────────────
+app.get('/api/pollos', (req, res) => {
+  try {
+    const row = db.prepare('SELECT * FROM pollos').all();
+    res.json(row);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/pollos', (req, res) => {
+  const { id, nombre, precio, stock } = req.body;
+  try {
+    if (id) {
+      db.prepare('UPDATE pollos SET nombre = ?, precio = ?, stock = ? WHERE id = ?')
+        .run(nombre, precio, stock || 0, id);
+    } else {
+      db.prepare('INSERT INTO pollos (nombre, precio, stock) VALUES (?, ?, ?)')
+        .run(nombre, precio, stock || 0);
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/pollos/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare('DELETE FROM pollos WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Ventas Pollo ───────────────────────────────────────────────────
+app.get('/api/ventas_pollo', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT * FROM ventas_pollo ORDER BY date DESC').all();
+    const ventasConItems = rows.map(v => {
+      const items = db.prepare('SELECT * FROM venta_pollo_items WHERE venta_id = ?').all(v.id);
+      return { ...v, items };
+    });
+    res.json(ventasConItems);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/ventas_pollo', (req, res) => {
+  const { date, total, client, method, paidAmount, change, items } = req.body;
+  
+  const transaction = db.transaction(() => {
+    const insertVenta = db.prepare(`
+      INSERT INTO ventas_pollo (date, total, client, method, paidAmount, change)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const info = insertVenta.run(date, total, client, method, paidAmount, change);
+    const ventaId = info.lastInsertRowid;
+
+    const insertItem = db.prepare(`
+      INSERT INTO venta_pollo_items (venta_id, pollo_id, nombre, precio, qty)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    for (const item of items) {
+      insertItem.run(ventaId, item.id, item.nombre, item.precio, item.qty);
+    }
+    
+    return ventaId;
+  });
+
+  try {
+    const id = transaction();
+    res.json({ success: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/ventas_pollo/:id', (req, res) => {
+  const { id } = req.params;
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM venta_pollo_items WHERE venta_id = ?').run(id);
+    db.prepare('DELETE FROM ventas_pollo WHERE id = ?').run(id);
+    return true;
+  });
+  try {
+    transaction();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Cortes de caja Pollo ───────────────────────────────────────────
+app.get('/api/cortes_pollo', (req, res) => {
+  const { date } = req.query;
+  try {
+    if (date) {
+      const corte = db.prepare('SELECT * FROM cortes_caja_pollo WHERE corte_date = ?').get(date);
+      return res.json(corte || null);
+    }
+    const cortes = db.prepare('SELECT * FROM cortes_caja_pollo ORDER BY corte_date DESC').all();
+    return res.json(cortes);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/cortes_pollo', (req, res) => {
+  const { corteDate, total, efectivo, tarjeta, transacciones, productos } = req.body;
+  if (!corteDate) return res.status(400).json({ error: 'corteDate es requerido' });
+
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO cortes_caja_pollo (corte_date, created_at, total, efectivo, tarjeta, transacciones, productos_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(corte_date) DO UPDATE SET
+        created_at = excluded.created_at,
+        total = excluded.total,
+        efectivo = excluded.efectivo,
+        tarjeta = excluded.tarjeta,
+        transacciones = excluded.transacciones,
+        productos_json = excluded.productos_json
+    `);
+
+    const nowIso = new Date().toISOString();
+    stmt.run(
+      corteDate, nowIso, Number(total || 0), Number(efectivo || 0),
+      Number(tarjeta || 0), Number(transacciones || 0), JSON.stringify(productos || [])
+    );
+
+    const corte = db.prepare('SELECT * FROM cortes_caja_pollo WHERE corte_date = ?').get(corteDate);
+    return res.json({ success: true, corte });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 if (shouldServeWebApp) {
   app.use(express.static(distDir));
 

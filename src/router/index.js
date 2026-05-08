@@ -9,6 +9,7 @@ import Usuarios from '../views/Usuarios.vue'
 import BaseDatos from '../views/BaseDatos.vue'
 import HistorialVentas from '../views/HistorialVentas.vue'
 import CorteCaja from '../views/CorteCaja.vue'
+import Polleria from '../views/Polleria.vue'
 
 const routes = [
   {
@@ -45,6 +46,12 @@ const routes = [
     name: 'corte',
     component: CorteCaja,
     meta: { requiresAuth: true, roles: ['admin'] },
+  },
+  {
+    path: '/polleria',
+    name: 'polleria',
+    component: Polleria,
+    meta: { requiresAuth: true, roles: ['admin', 'cajero'] },
   },
   {
     path: '/inventario',

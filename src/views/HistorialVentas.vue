@@ -29,7 +29,7 @@
                 <span class="sale-client">{{ v.client || 'Público General' }}</span>
               </div>
               <div class="sale-sum-info">
-                <span :class="['sale-method', v.method === 'Efectivo' ? 'm-cash' : 'm-card']">
+                <span :class="['sale-method', methodClass(v.method)]">
                   {{ v.method }}
                 </span>
                 <span class="sale-total">${{ Number(v.total).toFixed(2) }}</span>
@@ -63,6 +63,9 @@
               </div>
               
               <div class="sale-actions" v-if="authStore.isAdmin">
+                <div v-if="esFiado(v)" class="credit-note">
+                  Pendiente de cobro: ${{ saleCreditAmount(v).toFixed(2) }}
+                </div>
                 <button class="btn-delete" @click="confirmDelete(v.id)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -83,6 +86,7 @@ import { ref, computed, onMounted } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useVentasStore } from '../stores/ventas'
 import { useAuthStore } from '../stores/auth'
+import { getLocalDateKey, normalizePaymentMethod, saleCreditAmount } from '../utils/sales'
 
 const ventasStore = useVentasStore()
 const authStore = useAuthStore()
@@ -93,6 +97,7 @@ const filterActive = ref('today')
 const filterOptions = [
   { id: 'today', label: 'Hoy' },
   { id: 'yesterday', label: 'Ayer' },
+  { id: 'credit', label: 'Fiados' },
   { id: 'all', label: 'Todo' }
 ]
 
@@ -102,16 +107,19 @@ onMounted(() => {
 
 const ventasFiltradas = computed(() => {
   if (filterActive.value === 'all') return ventasStore.ventas
+  if (filterActive.value === 'credit') {
+    return ventasStore.ventas.filter(v => normalizePaymentMethod(v.method) === 'fiado')
+  }
   
   const now = new Date()
-  const today = now.toISOString().slice(0, 10)
+  const today = getLocalDateKey(now)
   
   const yesterdayDate = new Date()
   yesterdayDate.setDate(now.getDate() - 1)
-  const yesterday = yesterdayDate.toISOString().slice(0, 10)
+  const yesterday = getLocalDateKey(yesterdayDate)
 
   return ventasStore.ventas.filter(v => {
-    const vDate = v.date.slice(0, 10)
+    const vDate = getLocalDateKey(v.date)
     if (filterActive.value === 'today') return vDate === today
     if (filterActive.value === 'yesterday') return vDate === yesterday
     return true
@@ -128,6 +136,17 @@ function formatDate(iso) {
     hour: '2-digit', minute: '2-digit',
     day: '2-digit', month: '2-digit'
   })
+}
+
+function methodClass(method) {
+  const normalized = normalizePaymentMethod(method)
+  if (normalized === 'fiado') return 'm-credit'
+  if (normalized === 'tarjeta') return 'm-card'
+  return 'm-cash'
+}
+
+function esFiado(venta) {
+  return normalizePaymentMethod(venta.method) === 'fiado'
 }
 
 async function confirmDelete(id) {
@@ -175,6 +194,7 @@ async function confirmDelete(id) {
 .sale-method { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
 .m-cash { background: #dcfce7; color: #15803d; }
 .m-card { background: #dbeafe; color: #1d4ed8; }
+.m-credit { background: #fef3c7; color: #b45309; }
 
 .icon-chevron { transition: transform 0.2s; color: var(--gray-400); }
 .icon-chevron.expanded { transform: rotate(180deg); }
@@ -188,6 +208,13 @@ async function confirmDelete(id) {
 .text-right { text-align: right; }
 
 .sale-actions { margin-top: var(--space-4); display: flex; justify-content: flex-end; }
+.credit-note {
+  margin-right: auto;
+  align-self: center;
+  color: #b45309;
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
 .btn-delete { 
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px; background: #fee2e2; color: #dc2626; border: none; 

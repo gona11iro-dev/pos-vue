@@ -64,6 +64,45 @@ db.exec(`
     transacciones INTEGER NOT NULL DEFAULT 0,
     productos_json TEXT NOT NULL DEFAULT '[]'
   );
+
+  CREATE TABLE IF NOT EXISTS pollos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    precio REAL NOT NULL,
+    stock REAL NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS ventas_pollo (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    total REAL NOT NULL,
+    client TEXT,
+    method TEXT DEFAULT 'Efectivo',
+    paidAmount REAL,
+    change REAL
+  );
+
+  CREATE TABLE IF NOT EXISTS venta_pollo_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    venta_id INTEGER NOT NULL,
+    pollo_id INTEGER NOT NULL,
+    nombre TEXT NOT NULL,
+    precio REAL NOT NULL,
+    qty REAL NOT NULL,
+    FOREIGN KEY (venta_id) REFERENCES ventas_pollo(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS cortes_caja_pollo (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    corte_date TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    total REAL NOT NULL DEFAULT 0,
+    efectivo REAL NOT NULL DEFAULT 0,
+    tarjeta REAL NOT NULL DEFAULT 0,
+    transacciones INTEGER NOT NULL DEFAULT 0,
+    productos_json TEXT NOT NULL DEFAULT '[]'
+
+  );
 `);
 
 function ensureColumn(tableName, columnName, definition) {
@@ -87,6 +126,18 @@ if (!seedAdmin) {
   db.prepare('INSERT INTO usuarios (username, password, role) VALUES (?, ?, ?)')
     .run('admin', '1234', 'admin');
   console.log('[DB] Admin user created (admin / 1234)');
+}
+
+// Seed: Pollos por defecto
+const pollosCount = db.prepare('SELECT COUNT(*) as count FROM pollos').get();
+if (pollosCount.count === 0) {
+  const insertPollo = db.prepare('INSERT INTO pollos (nombre, precio) VALUES (?, ?)');
+  insertPollo.run('Pollo Entero', 120.0);
+  insertPollo.run('Pechuga', 45.0);
+  insertPollo.run('Pierna y Muslo', 35.0);
+  insertPollo.run('Medio Pollo', 60.0);
+  insertPollo.run('Alitas', 20.0);
+  console.log('[DB] Seeded initial pollos data');
 }
 
 export default db;

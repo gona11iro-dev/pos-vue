@@ -38,7 +38,11 @@
             </div>
             <div class="m-stat m-stat--success">
               <span class="m-stat-label">Total en Caja</span>
-              <span class="m-stat-val">${{ totalVentasHoy.toFixed(2) }}</span>
+              <span class="m-stat-val">${{ totalCajaHoy.toFixed(2) }}</span>
+            </div>
+            <div class="m-stat m-stat--warning">
+              <span class="m-stat-label">Fiado Hoy</span>
+              <span class="m-stat-val">${{ totalFiadoHoy.toFixed(2) }}</span>
             </div>
           </div>
         </div>
@@ -213,52 +217,109 @@
       <!-- Modal Pago Completo -->
       <div v-if="mostrarPagar" class="modal-overlay" @click.self="mostrarPagar = false">
         <div class="modal-card modal-pago">
-          <h2>Detalles de Cobro</h2>
-          <div class="form-group">
-            <label>Cliente (Opcional)</label>
-            <input type="text" v-model="clienteNombre" placeholder="Público en general" class="input-modal" />
+          <h2>Cobrar venta</h2>
+
+          <div class="modal-pago-body">
+            <div class="p-total">${{ totalCarrito.toFixed(2) }}</div>
+
+          <div class="payment-methods">
+            <button
+              type="button"
+              class="payment-method"
+              :class="{ active: paymentMethod === PAYMENT_METHODS.CASH }"
+              @click="paymentMethod = PAYMENT_METHODS.CASH"
+            >
+              Efectivo
+            </button>
+            <button
+              type="button"
+              class="payment-method payment-method--card"
+              :class="{ active: paymentMethod === PAYMENT_METHODS.CARD }"
+              @click="paymentMethod = PAYMENT_METHODS.CARD"
+            >
+              Tarjeta
+            </button>
+            <button
+              type="button"
+              class="payment-method payment-method--credit"
+              :class="{ active: paymentMethod === PAYMENT_METHODS.CREDIT }"
+              @click="paymentMethod = PAYMENT_METHODS.CREDIT"
+            >
+              Fiado
+            </button>
           </div>
 
-          <div class="p-total">${{ totalCarrito.toFixed(2) }}</div>
+          <div class="form-group">
+            <label>{{ esPagoFiado ? 'Cliente para fiado' : 'Cliente (Opcional)' }}</label>
+            <input
+              type="text"
+              v-model="clienteNombre"
+              :placeholder="esPagoFiado ? 'Nombre del cliente' : 'Público en general'"
+              class="input-modal"
+              :class="{ 'input-modal--error': esPagoFiado && !clienteFiadoValido }"
+              @keyup.enter="confirmarPago"
+            />
+          </div>
           
-          <div class="p-form">
+          <div v-if="esPagoEfectivo" class="p-form">
             <label>Efectivo Recibido:</label>
             <div class="input-received-wrapper">
               <span>$</span>
               <input type="number" v-model.number="montoRecibido" class="p-input" autofocus @keyup.enter="confirmarPago" />
-              <button class="btn-clear-input" @click="montoRecibido = 0">Limpiar</button>
+              <button class="btn-clear-input" @click="limpiarEfectivo">Limpiar</button>
             </div>
             
             <div class="quick-cash-container">
               <div class="subtitle-cash">Billetes</div>
               <div class="quick-cash">
-                <button class="btn-cash" @click="sumarMonto(1000)">$1000</button>
-                <button class="btn-cash" @click="sumarMonto(500)">$500</button>
-                <button class="btn-cash" @click="sumarMonto(200)">$200</button>
-                <button class="btn-cash" @click="sumarMonto(100)">$100</button>
-                <button class="btn-cash" @click="sumarMonto(50)">$50</button>
-                <button class="btn-cash" @click="sumarMonto(20)">$20</button>
+                <button v-for="cantidad in billetesMx" :key="`b-${cantidad}`" class="btn-cash" @click="sumarMonto(cantidad)">${{ cantidad }}</button>
               </div>
 
               <div class="subtitle-cash mt-2">Monedas / Exacto</div>
               <div class="quick-cash">
-                <button class="btn-cash exact" @click="montoRecibido = totalCarrito">Exacto</button>
-                <button class="btn-cash" @click="sumarMonto(10)">$10</button>
-                <button class="btn-cash" @click="sumarMonto(5)">$5</button>
-                <button class="btn-cash" @click="sumarMonto(2)">$2</button>
-                <button class="btn-cash" @click="sumarMonto(1)">$1</button>
-                <button class="btn-cash" @click="sumarMonto(0.50)">50¢</button>
+                <button class="btn-cash exact" @click="montoExacto">Exacto</button>
+                <button v-for="cantidad in monedasMx" :key="`m-${cantidad}`" class="btn-cash" @click="sumarMonto(cantidad)">
+                  {{ cantidad < 1 ? '50¢' : `$${cantidad}` }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="cashBreakdown.length" class="cash-breakdown">
+              <span>Te dieron</span>
+              <div class="cash-breakdown__chips">
+                <button v-for="entry in cashBreakdown" :key="entry.amount" type="button" class="cash-chip" @click="quitarMonto(entry.amount)">
+                  {{ entry.count }}x {{ entry.amount < 1 ? '50¢' : `$${entry.amount}` }}
+                </button>
               </div>
             </div>
           </div>
+
+          <div v-else-if="esPagoTarjeta" class="card-box">
+            <strong>Cobro con tarjeta</strong>
+            <span>Se registra como pagado por tarjeta y no calcula cambio.</span>
+          </div>
+
+          <div v-else class="fiado-box">
+            <strong>Venta fiada</strong>
+            <span>Se descuenta inventario y queda pendiente de cobro. No suma al total en caja.</span>
+          </div>
           
-          <div class="modal-cambio" :class="{ 'error': montoRecibidoNumero < totalCarrito }">
+          <div v-if="esPagoEfectivo" class="modal-cambio" :class="{ 'error': montoRecibidoNumero < totalCarrito }">
             {{ montoRecibidoNumero < totalCarrito ? 'Falta cobrar:' : 'Cambio a devolver:' }} ${{ Math.abs(montoRecibidoNumero - totalCarrito).toFixed(2) }}
+          </div>
+          <div v-else-if="esPagoTarjeta" class="modal-cambio modal-cambio--card">
+            Cobro con tarjeta: ${{ totalCarrito.toFixed(2) }}
+          </div>
+          <div v-else class="modal-cambio modal-cambio--fiado">
+            Pendiente de cobro: ${{ totalCarrito.toFixed(2) }}
+          </div>
           </div>
           
           <div class="modal-footer">
             <button class="btn-cancelar" @click="mostrarPagar = false">Cerrar</button>
-            <button class="btn-success" :disabled="montoRecibidoNumero < totalCarrito" @click="confirmarPago">Completar Venta</button>
+            <button class="btn-success" :disabled="!puedeCompletarPago" @click="confirmarPago">
+              {{ paymentButtonLabel }}
+            </button>
           </div>
         </div>
       </div>
@@ -300,6 +361,7 @@ import { useAuthStore } from '../stores/auth'
 import { useProductosStore } from '../stores/productos'
 import { useVentasStore } from '../stores/ventas'
 import { sanitizeBarcode } from '../utils/barcode'
+import { PAYMENT_METHODS, isSaleOnDate, saleCollectedAmount, saleCreditAmount, saleTotal } from '../utils/sales'
 
 const auth = useAuthStore()
 const productosStore = useProductosStore()
@@ -346,10 +408,13 @@ function cerrarFeedback() {
 
 // Datos y Búsqueda
 
-const totalVentasHoy = computed(() => {
+const ventasHoy = computed(() => {
   const lista = ventasStore.ventas || []
-  return lista.reduce((sum, v) => sum + (Number(v.total) || 0), 0)
+  return lista.filter(v => isSaleOnDate(v))
 })
+const totalVentasHoy = computed(() => ventasHoy.value.reduce((sum, v) => sum + saleTotal(v), 0))
+const totalCajaHoy = computed(() => ventasHoy.value.reduce((sum, v) => sum + saleCollectedAmount(v), 0))
+const totalFiadoHoy = computed(() => ventasHoy.value.reduce((sum, v) => sum + saleCreditAmount(v), 0))
 
 const listaProductos = computed(() => {
   const lista = productosStore.productos || []
@@ -384,7 +449,33 @@ const mostrarScanner = ref(false)
 const mostrarPagar = ref(false)
 const montoRecibido = ref(0)
 const clienteNombre = ref('')
+const paymentMethod = ref(PAYMENT_METHODS.CASH)
+const cashEntries = ref([])
+const billetesMx = [1000, 500, 200, 100, 50, 20]
+const monedasMx = [20, 10, 5, 2, 1, 0.5]
 const montoRecibidoNumero = computed(() => Number(montoRecibido.value) || 0)
+const esPagoEfectivo = computed(() => paymentMethod.value === PAYMENT_METHODS.CASH)
+const esPagoTarjeta = computed(() => paymentMethod.value === PAYMENT_METHODS.CARD)
+const esPagoFiado = computed(() => paymentMethod.value === PAYMENT_METHODS.CREDIT)
+const clienteFiadoValido = computed(() => clienteNombre.value.trim().length > 0)
+const puedeCompletarPago = computed(() => {
+  if (!carrito.value.length) return false
+  if (esPagoTarjeta.value) return true
+  if (esPagoFiado.value) return clienteFiadoValido.value
+  return montoRecibidoNumero.value >= totalCarrito.value
+})
+const cashBreakdown = computed(() => {
+  const counts = new Map()
+  for (const amount of cashEntries.value) {
+    counts.set(amount, (counts.get(amount) || 0) + 1)
+  }
+  return Array.from(counts, ([amount, count]) => ({ amount, count })).sort((a, b) => b.amount - a.amount)
+})
+const paymentButtonLabel = computed(() => {
+  if (esPagoTarjeta.value) return 'Completar con Tarjeta'
+  if (esPagoFiado.value) return 'Guardar Fiado'
+  return 'Completar Venta'
+})
 
 // Peso Modal Avanzado
 const modalPeso = reactive({ visible: false, producto: null, pesoStr: '', editUid: null })
@@ -513,30 +604,66 @@ function onBarcodeDetected(payload) {
 function abrirPagar() {
   clienteNombre.value = ''
   montoRecibido.value = totalCarrito.value
+  paymentMethod.value = PAYMENT_METHODS.CASH
+  cashEntries.value = []
   mostrarPagar.value = true
 }
 
 function sumarMonto(cantidad) {
   if (montoRecibidoNumero.value === totalCarrito.value && cantidad !== 0) montoRecibido.value = 0
   montoRecibido.value = montoRecibidoNumero.value + cantidad
+  cashEntries.value.push(cantidad)
+}
+
+function quitarMonto(cantidad) {
+  const index = cashEntries.value.findIndex(amount => amount === cantidad)
+  if (index === -1) return
+  cashEntries.value.splice(index, 1)
+  montoRecibido.value = Math.max(montoRecibidoNumero.value - cantidad, 0)
+}
+
+function limpiarEfectivo() {
+  montoRecibido.value = 0
+  cashEntries.value = []
+}
+
+function montoExacto() {
+  montoRecibido.value = totalCarrito.value
+  cashEntries.value = []
 }
 
 async function confirmarPago() {
   if (!carrito.value.length) return
-  if (montoRecibidoNumero.value < totalCarrito.value) return
+  if (!puedeCompletarPago.value) {
+    if (esPagoFiado.value) mostrarFeedback('Escribe el nombre del cliente para fiado', 'error')
+    return
+  }
+
+  const isCard = esPagoTarjeta.value
+  const isCredit = esPagoFiado.value
+  const paidAmount = isCard ? totalCarrito.value : (isCredit ? 0 : montoRecibidoNumero.value)
+  const change = isCard || isCredit ? 0 : montoRecibidoNumero.value - totalCarrito.value
 
   try {
     await ventasStore.registrarVenta(carrito.value, totalCarrito.value, {
-      client: clienteNombre.value,
-      method: 'Efectivo',
-      paidAmount: montoRecibidoNumero.value,
-      change: montoRecibidoNumero.value - totalCarrito.value
+      client: clienteNombre.value.trim(),
+      method: paymentMethod.value,
+      paidAmount,
+      change
     })
-    mostrarFeedback(`Venta exitosa. Cambio: $${(montoRecibidoNumero.value - totalCarrito.value).toFixed(2)}`)
+    if (isCredit) {
+      mostrarFeedback(`Fiado guardado para ${clienteNombre.value.trim()}`)
+    } else if (isCard) {
+      mostrarFeedback('Venta con tarjeta registrada')
+    } else {
+      mostrarFeedback(`Venta exitosa. Cambio: $${change.toFixed(2)}`)
+    }
     carrito.value = []
     buscar.value = ''
     clienteNombre.value = ''
     montoRecibido.value = 0
+    cashEntries.value = []
+    paymentMethod.value = PAYMENT_METHODS.CASH
     mostrarPagar.value = false
   } catch (error) {
     mostrarFeedback('Error al procesar la venta', 'error')
@@ -670,6 +797,7 @@ async function confirmarPago() {
 .m-stat { flex: 1; padding: 15px; border-radius: 16px; color: #fff; display: flex; flex-direction: column; gap: 5px; }
 .m-stat--primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .m-stat--success { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.m-stat--warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .m-stat-label { font-size: 0.75rem; font-weight: 600; opacity: 0.9; }
 .m-stat-val { font-size: 1.25rem; font-weight: 800; }
 
@@ -729,15 +857,27 @@ async function confirmarPago() {
 .modal-pago {
   display: flex;
   flex-direction: column;
+  width: min(94vw, 760px);
+  max-width: 760px;
   max-height: min(90vh, 760px);
 }
 
-.modal-pago h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 20px; text-align: center; }
+.modal-pago h2 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 20px; text-align: center; flex-shrink: 0; }
+.modal-pago-body { flex: 1; overflow-y: auto; padding-right: 10px; margin-right: -4px; display: flex; flex-direction: column; }
+.modal-pago-body::-webkit-scrollbar { width: 6px; }
+.modal-pago-body::-webkit-scrollbar-track { background: transparent; }
+.modal-pago-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; font-weight: 600; color: #475569; margin-bottom: 8px; font-size: 0.9rem; }
 .input-modal { width: 100%; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 1rem; }
+.input-modal--error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12); }
 
 .p-total { font-size: 2.5rem; font-weight: 800; color: #2563eb; text-align: center; margin-bottom: 25px; background: #f1f5f9; padding: 15px; border-radius: 12px; }
+.payment-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.payment-method { padding: 14px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; color: #334155; font-weight: 800; cursor: pointer; }
+.payment-method.active { border-color: #16a34a; background: #dcfce7; color: #15803d; }
+.payment-method--card.active { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; }
+.payment-method--credit.active { border-color: #f59e0b; background: #fef3c7; color: #b45309; }
 .p-form label { font-weight: 700; color: #475569; display: block; margin-bottom: 10px; }
 .input-received-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
 .input-received-wrapper span { font-size: 1.5rem; font-weight: 700; color: #64748b; }
@@ -750,9 +890,22 @@ async function confirmarPago() {
 .quick-cash { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; margin-bottom: 5px; }
 .btn-cash { padding: 12px 5px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 700; font-size: 1.05rem; color: #1e293b; cursor: pointer; }
 .btn-cash.exact { background: #dcfce7; border-color: #22c55e; color: #16a34a; }
+.cash-breakdown { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 18px; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; }
+.cash-breakdown > span { color: #64748b; font-size: 0.82rem; font-weight: 800; text-transform: uppercase; }
+.cash-breakdown__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cash-chip { padding: 8px 10px; border: 1px solid #bbf7d0; border-radius: 999px; background: #dcfce7; color: #15803d; font-weight: 800; cursor: pointer; }
+.card-box,
+.fiado-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; padding: 16px; border-radius: 14px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+.card-box { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.card-box strong,
+.fiado-box strong { font-size: 1rem; }
+.card-box span,
+.fiado-box span { font-size: 0.9rem; line-height: 1.45; }
 
 .modal-cambio { text-align: center; padding: 15px; font-weight: 800; font-size: 1.3rem; color: #16a34a; background: #dcfce7; border-radius: 12px; margin-bottom: 20px; }
 .modal-cambio.error { color: #dc2626; background: #fee2e2; }
+.modal-cambio--card { color: #1d4ed8; background: #dbeafe; }
+.modal-cambio--fiado { color: #b45309; background: #fef3c7; }
 .modal-pago .quick-cash-container {
   overflow-y: auto;
   max-height: min(38vh, 320px);
@@ -776,15 +929,15 @@ async function confirmarPago() {
 
 .modal-footer { display: flex; gap: 12px; }
 .modal-pago .modal-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
+  flex-shrink: 0;
   background: #fff;
-  padding-top: 12px;
+  padding-top: 15px;
+  margin-top: 15px;
   border-top: 1px solid #e2e8f0;
 }
 .btn-cancelar { flex: 1; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; font-weight: 700; color: #64748b; cursor: pointer; }
 .btn-success { flex: 2; padding: 16px; background: #16a34a; color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
+.btn-success--credit { background: #f59e0b; }
 .btn-success:disabled, .btn-primary:disabled { opacity: 0.5; padding: 16px; border-radius: 12px; }
 .btn-primary { flex: 2; padding: 16px; background: #2563eb; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1.1rem; }
 
@@ -858,6 +1011,7 @@ async function confirmarPago() {
   .modal-overlay { padding: 0; align-items: flex-end; }
   .modal-pago { max-height: min(88dvh, 760px); }
   .p-total { font-size: 2rem; margin-bottom: 15px; padding: 10px; }
+  .payment-methods { grid-template-columns: 1fr; }
   .quick-cash { gap: 6px; }
   .btn-cash { padding: 10px 5px; font-size: 0.95rem; }
   .modal-pago .quick-cash-container { max-height: min(34vh, 260px); }

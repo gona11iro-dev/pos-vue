@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:9.2.0'
         classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -17,7 +17,14 @@ buildscript {
 
 apply from: "variables.gradle"
 
+def externalBuildRoot = new File(
+    System.getenv("POS_VUE_ANDROID_BUILD_DIR") ?: "${System.getProperty('user.home')}/.pos-vue-android-build"
+)
+
 allprojects {
+    def externalProjectPath = project == rootProject ? "root" : project.path.substring(1).replace(':', File.separator)
+    layout.buildDirectory.set(new File(externalBuildRoot, externalProjectPath))
+
     repositories {
         google()
         mavenCentral()
@@ -25,5 +32,5 @@ allprojects {
 }
 
 task clean(type: Delete) {
-    delete rootProject.buildDir
+    delete layout.buildDirectory
 }

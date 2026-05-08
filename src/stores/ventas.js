@@ -25,8 +25,8 @@ export const useVentasStore = defineStore('ventas', () => {
       total: total,
       client: cobroData.client || '',
       method: cobroData.method || 'Efectivo',
-      paidAmount: cobroData.paidAmount || total,
-      change: cobroData.change || 0,
+      paidAmount: cobroData.paidAmount ?? total,
+      change: cobroData.change ?? 0,
       items: carrito.map(item => ({
         barcode: item.barcode,
         name: item.name,
@@ -44,7 +44,7 @@ export const useVentasStore = defineStore('ventas', () => {
       // Actualizar stock local en el store de productos para reflejar cambios sin recargar
       for (const item of carrito) {
         const piniaProd = productosStore.productos.find(p => p.barcode === item.barcode)
-        if (piniaProd) {
+        if (piniaProd && (!item.unit || item.unit === 'pza')) {
           piniaProd.stock = Number(piniaProd.stock) - Number(item.qty)
         }
       }

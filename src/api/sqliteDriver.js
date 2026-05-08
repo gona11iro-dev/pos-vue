@@ -74,6 +74,7 @@ export async function initNativeDB() {
         name TEXT NOT NULL,
         price REAL NOT NULL,
         qty REAL NOT NULL,
+        unit TEXT DEFAULT 'pza',
         FOREIGN KEY (venta_id) REFERENCES ventas (id)
       );
       CREATE TABLE IF NOT EXISTS cortes_caja (
@@ -88,6 +89,7 @@ export async function initNativeDB() {
       );
     `;
     await db.execute(schema);
+    await ensureNativeColumn('venta_items', 'unit', "TEXT DEFAULT 'pza'");
     
     console.log('[NativeDB] Esquema verificado/creado.');
 
@@ -105,6 +107,16 @@ export async function initNativeDB() {
     throw e;
   } finally {
     isInitializing = false;
+  }
+}
+
+async function ensureNativeColumn(tableName, columnName, definition) {
+  const res = await db.query(`PRAGMA table_info(${tableName})`);
+  const columns = res.values || [];
+  const hasColumn = columns.some(column => column.name === columnName);
+
+  if (!hasColumn) {
+    await db.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
   }
 }
 

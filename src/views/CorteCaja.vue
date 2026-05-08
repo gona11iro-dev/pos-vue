@@ -64,6 +64,18 @@
         </div>
 
         <div class="card stat-card">
+          <div class="stat-icon s-credit">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 8v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"></path><path d="M3 8l9-5 9 5"></path><path d="M12 13v5"></path>
+            </svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Fiado</span>
+            <span class="stat-value">${{ resumen.fiado.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="card stat-card">
           <div class="stat-icon s-count">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>
@@ -109,6 +121,7 @@ import AppLayout from '../layouts/AppLayout.vue'
 import { useVentasStore } from '../stores/ventas'
 import { exportToCsv } from '../utils/export'
 import { api } from '../api/client'
+import { getLocalDateKey, isSaleOnDate, normalizePaymentMethod, saleCollectedAmount, saleCreditAmount, saleTotal } from '../utils/sales'
 
 const ventasStore = useVentasStore()
 const savingCorte = ref(false)
@@ -126,21 +139,24 @@ onMounted(() => {
 })
 
 const resumen = computed(() => {
-  const today = new Date().toISOString().slice(0, 10)
-  const ventasHoy = ventasStore.ventas.filter(v => v.date.slice(0, 10) === today)
+  const ventasHoy = ventasStore.ventas.filter(v => isSaleOnDate(v))
   
   const stats = {
     total: 0,
     efectivo: 0,
     tarjeta: 0,
+    fiado: 0,
     count: ventasHoy.length,
     productos: {}
   }
 
   ventasHoy.forEach(v => {
-    stats.total += Number(v.total)
-    if (v.method === 'Efectivo') stats.efectivo += Number(v.total)
-    else stats.tarjeta += Number(v.total)
+    stats.total += saleTotal(v)
+
+    const method = normalizePaymentMethod(v.method)
+    if (method === 'efectivo') stats.efectivo += saleCollectedAmount(v)
+    else if (method === 'tarjeta') stats.tarjeta += saleCollectedAmount(v)
+    else stats.fiado += saleCreditAmount(v)
 
     v.items.forEach(item => {
       if (!stats.productos[item.barcode]) {
@@ -166,7 +182,7 @@ function descargarCorte() {
   
   const headers = ['Producto', 'Cantidad', 'Venta Total']
   const columns = ['Producto', 'Cantidad', 'Venta Total']
-  const date = new Date().toISOString().slice(0, 10)
+  const date = getLocalDateKey()
   
   exportToCsv(data, columns, headers, `corte_caja_${date}.csv`)
 }
@@ -176,12 +192,13 @@ async function guardarCorteDiario() {
   corteErrorMsg.value = ''
   savingCorte.value = true
   try {
-    const date = new Date().toISOString().slice(0, 10)
+    const date = getLocalDateKey()
     const payload = {
       corteDate: date,
       total: resumen.value.total,
       efectivo: resumen.value.efectivo,
       tarjeta: resumen.value.tarjeta,
+      fiado: resumen.value.fiado,
       transacciones: resumen.value.count,
       productos: resumen.value.productos
     }
@@ -234,6 +251,7 @@ async function guardarCorteDiario() {
 .s-total { background: #eff6ff; color: #2563eb; }
 .s-cash { background: #ecfdf5; color: #10b981; }
 .s-card { background: #f5f3ff; color: #7c3aed; }
+.s-credit { background: #fff7ed; color: #ea580c; }
 .s-count { background: #fff7ed; color: #ea580c; }
 
 .stat-info { display: flex; flex-direction: column; }

@@ -24,7 +24,7 @@
           </div>
           <div class="m-stat-card m-stat-card--red">
             <span class="m-stat-label">Cierre de Caja</span>
-            <span class="m-stat-value">${{ ventasHoy.toFixed(2) }}</span>
+            <span class="m-stat-value">${{ cierreCajaHoy.toFixed(2) }}</span>
           </div>
         </div>
 
@@ -35,14 +35,21 @@
 
         <div class="m-bottom-stats">
           <div class="m-info-card">
-            <div class="m-info-icon icon-orange">📦</div>
+            <div class="m-info-icon icon-orange">Fiado</div>
+            <div class="m-info-texts">
+              <strong>${{ fiadoHoy.toFixed(2) }}</strong>
+              <span>Pendiente hoy</span>
+            </div>
+          </div>
+          <div class="m-info-card">
+            <div class="m-info-icon icon-orange">Prod</div>
             <div class="m-info-texts">
               <strong>Productos</strong>
               <span>{{ productosTotales }} en stock</span>
             </div>
           </div>
           <div class="m-info-card">
-            <div class="m-info-icon icon-orange">👥</div>
+            <div class="m-info-icon icon-orange">User</div>
             <div class="m-info-texts">
               <strong>Personal</strong>
               <span>Activos</span>
@@ -67,22 +74,22 @@
 
         <section class="dashboard-metrics">
           <article class="metric-card metric-card--emerald">
-            <span class="metric-card__label">Ventas del día</span>
+            <span class="metric-card__label">Ventas de hoy</span>
             <strong>${{ ventasHoy.toFixed(2) }}</strong>
-            <small>{{ transacciones }} tickets registrados</small>
+            <small>Total vendido, incluye fiado</small>
           </article>
           <article class="metric-card metric-card--blue">
-            <span class="metric-card__label">Ticket promedio</span>
-            <strong>${{ ticketPromedio.toFixed(2) }}</strong>
-            <small>Promedio por compra</small>
+            <span class="metric-card__label">Cierre de caja</span>
+            <strong>${{ cierreCajaHoy.toFixed(2) }}</strong>
+            <small>Dinero cobrado hoy</small>
           </article>
           <article class="metric-card metric-card--amber">
-            <span class="metric-card__label">Catálogo activo</span>
-            <strong>{{ productosTotales }}</strong>
-            <small>{{ productosPieza }} por pieza y {{ productosPeso }} por peso</small>
+            <span class="metric-card__label">Pedidos hoy</span>
+            <strong>{{ transacciones }}</strong>
+            <small>Tickets registrados</small>
           </article>
           <article class="metric-card metric-card--rose">
-            <span class="metric-card__label">Alertas de stock</span>
+            <span class="metric-card__label">Inventario bajo</span>
             <strong>{{ bajosStock }}</strong>
             <small>Productos a revisar hoy</small>
           </article>
@@ -105,9 +112,9 @@
                 <small>Cobros cerrados en caja</small>
               </div>
               <div class="overview-card">
-                <span>Tarjeta</span>
-                <strong>${{ ventasTarjeta.toFixed(2) }}</strong>
-                <small>Pagos no efectivos</small>
+                <span>Fiado</span>
+                <strong>${{ fiadoHoy.toFixed(2) }}</strong>
+                <small>Ventas pendientes de cobro</small>
               </div>
               <div class="overview-card">
                 <span>Inventario saludable</span>
@@ -163,6 +170,7 @@ import AppLayout from '../layouts/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useVentasStore } from '../stores/ventas'
 import { useProductosStore } from '../stores/productos'
+import { isSaleOnDate, normalizePaymentMethod, saleCollectedAmount, saleCreditAmount, saleTotal } from '../utils/sales'
 
 const auth = useAuthStore()
 const ventasStore = useVentasStore()
@@ -183,20 +191,19 @@ function handleResize() {
   windowHeight.value = window.innerHeight
 }
 
-const ventasHoy = computed(() => ventasStore.ventas.reduce((sum, venta) => sum + (Number(venta.total) || 0), 0))
-const transacciones = computed(() => ventasStore.ventas.length)
+const ventasDeHoy = computed(() => ventasStore.ventas.filter(venta => isSaleOnDate(venta)))
+const ventasHoy = computed(() => ventasDeHoy.value.reduce((sum, venta) => sum + saleTotal(venta), 0))
+const cierreCajaHoy = computed(() => ventasDeHoy.value.reduce((sum, venta) => sum + saleCollectedAmount(venta), 0))
+const fiadoHoy = computed(() => ventasDeHoy.value.reduce((sum, venta) => sum + saleCreditAmount(venta), 0))
+const transacciones = computed(() => ventasDeHoy.value.length)
 const productosTotales = computed(() => productosStore.productos.length)
 const bajosStock = computed(() => productosStore.productos.filter(producto => Number(producto.stock) <= 5 && (!producto.unit || producto.unit === 'pza')).length)
 const productosPieza = computed(() => productosStore.productos.filter(producto => !producto.unit || producto.unit === 'pza').length)
 const productosPeso = computed(() => productosStore.productos.filter(producto => producto.unit === 'kg').length)
 const stockSaludable = computed(() => Math.max(productosTotales.value - bajosStock.value, 0))
-const ticketPromedio = computed(() => transacciones.value ? ventasHoy.value / transacciones.value : 0)
-const ventasEfectivo = computed(() => ventasStore.ventas
-  .filter(venta => (venta.method || '').toLowerCase() === 'efectivo')
-  .reduce((sum, venta) => sum + (Number(venta.total) || 0), 0))
-const ventasTarjeta = computed(() => ventasStore.ventas
-  .filter(venta => (venta.method || '').toLowerCase() !== 'efectivo')
-  .reduce((sum, venta) => sum + (Number(venta.total) || 0), 0))
+const ventasEfectivo = computed(() => ventasDeHoy.value
+  .filter(venta => normalizePaymentMethod(venta.method) === 'efectivo')
+  .reduce((sum, venta) => sum + saleCollectedAmount(venta), 0))
 
 const todayLabel = computed(() => {
   return new Intl.DateTimeFormat('es-MX', {
@@ -651,7 +658,17 @@ onBeforeUnmount(() => {
 }
 
 .m-info-icon {
-  font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .m-info-texts {
