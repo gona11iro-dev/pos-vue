@@ -136,6 +136,16 @@ async function handleNativeRoute(endpoint, method, body) {
     return { success: true };
   }
 
+  // Cobrar fiado
+  if (endpoint.match(/^\/ventas\/\d+\/cobrar$/) && method === 'PUT') {
+    const id = endpoint.split('/')[2];
+    await native.nativeRun(
+      'UPDATE ventas SET paidAmount = ?, method = ?, "change" = ? WHERE id = ?',
+      [body.paidAmount, body.method, body.change, id]
+    );
+    return { success: true };
+  }
+
   // Cortes de caja
   if (endpoint === '/cortes' && method === 'GET') {
     return await native.nativeQuery('SELECT * FROM cortes_caja ORDER BY corte_date DESC');
@@ -214,6 +224,7 @@ export const api = {
   getVentas: () => apiFetch('/ventas'),
   registerVenta: (ventaData) => apiFetch('/ventas', { method: 'POST', body: ventaData }),
   deleteVenta: (id) => apiFetch(`/ventas/${id}`, { method: 'DELETE' }),
+  cobrarFiado: (id, cobroData) => apiFetch(`/ventas/${id}/cobrar`, { method: 'PUT', body: cobroData }),
 
   // Cortes de caja
   getCortes: () => apiFetch('/cortes'),

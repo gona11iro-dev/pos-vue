@@ -31,16 +31,21 @@ export function saleTotal(sale) {
 
 export function saleCollectedAmount(sale) {
   const method = normalizePaymentMethod(sale?.method)
-  if (method === 'fiado') return 0
-
   const total = saleTotal(sale)
   const paid = Number(sale?.paidAmount)
   const change = Number(sale?.change) || 0
+
+  if (method === 'fiado') {
+    return Number.isFinite(paid) && paid > 0 ? paid : 0;
+  }
 
   if (!Number.isFinite(paid) || paid <= 0) return total
   return Math.max(paid - change, 0)
 }
 
 export function saleCreditAmount(sale) {
-  return normalizePaymentMethod(sale?.method) === 'fiado' ? saleTotal(sale) : 0
+  if (normalizePaymentMethod(sale?.method) !== 'fiado') return 0;
+  const total = saleTotal(sale);
+  const paid = Number(sale?.paidAmount);
+  return Number.isFinite(paid) && paid > 0 ? Math.max(0, total - paid) : total;
 }

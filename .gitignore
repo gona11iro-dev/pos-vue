@@ -48,3 +48,15 @@ data/
 .env
 .env.*
 !.env.example
+
+# Build Artifacts & Archives
+*.zip
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks
+
+# Scratch files
+scratch*.py
+*.pyc

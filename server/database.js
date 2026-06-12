@@ -116,6 +116,8 @@ function ensureColumn(tableName, columnName, definition) {
 
 ensureColumn('productos', 'unit', "TEXT DEFAULT 'pza'");
 ensureColumn('venta_items', 'unit', "TEXT DEFAULT 'pza'");
+ensureColumn('ventas', 'usuario_id', "INTEGER DEFAULT NULL");
+ensureColumn('ventas_pollo', 'usuario_id', "INTEGER DEFAULT NULL");
 
 db.prepare(`UPDATE productos SET unit = 'pza' WHERE unit IS NULL OR TRIM(unit) = ''`).run();
 db.prepare(`UPDATE venta_items SET unit = 'pza' WHERE unit IS NULL OR TRIM(unit) = ''`).run();

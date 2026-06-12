@@ -1,7 +1,7 @@
 /* ===== POS Global Styles ===== */
 
-/* Intentional dashboard typography */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+/* Corporate dashboard typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* CSS Reset */
 *,
@@ -23,13 +23,13 @@
   --mobile-header-height: calc(var(--mobile-header-base) + var(--safe-area-top));
   --mobile-nav-height: calc(var(--mobile-nav-base) + var(--safe-area-bottom));
 
-  /* Primary palette */
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
+  /* Primary palette — corporate blue */
+  --primary: #1e5eb8;
+  --primary-dark: #174a93;
   --primary-light: #dbeafe;
-  --primary-ink: #163b89;
-  --accent: #f59e0b;
-  --accent-light: #fef3c7;
+  --primary-ink: #12386e;
+  --accent: #b97e10;
+  --accent-light: #fdf3dd;
   --teal: #0f766e;
   --teal-light: #ccfbf1;
 
@@ -56,22 +56,22 @@
   --gray-900: #111827;
 
   /* Sidebar */
-  --sidebar-width: 288px;
-  --sidebar-bg: linear-gradient(180deg, #132744 0%, #0f1d35 52%, #0b1528 100%);
-  --sidebar-text: rgba(226, 232, 240, 0.78);
+  --sidebar-width: 264px;
+  --sidebar-bg: #102a4c;
+  --sidebar-text: rgba(214, 226, 240, 0.82);
   --sidebar-active: var(--primary);
 
   /* Layout */
   --header-height: 56px;
-  --content-bg: #edf2f9;
+  --content-bg: #f1f4f9;
   --card-bg: #ffffff;
-  --surface-soft: rgba(255, 255, 255, 0.72);
-  --surface-muted: #f5f8fc;
-  --surface-border: rgba(148, 163, 184, 0.22);
+  --surface-soft: #ffffff;
+  --surface-muted: #f5f7fb;
+  --surface-border: #dde4ee;
 
   /* Typography */
-  --font-family: 'Manrope', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-display: 'Space Grotesk', 'Manrope', sans-serif;
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', 'Segoe UI', sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -95,11 +95,11 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 30px 80px rgba(15, 23, 42, 0.16);
+  /* Shadows — sober, corporate */
+  --shadow-sm: 0 1px 2px rgba(16, 42, 76, 0.06);
+  --shadow-md: 0 2px 6px rgba(16, 42, 76, 0.08);
+  --shadow-lg: 0 6px 18px rgba(16, 42, 76, 0.1);
+  --shadow-xl: 0 12px 32px rgba(16, 42, 76, 0.14);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -117,10 +117,7 @@ html {
 body {
   font-family: var(--font-family);
   color: var(--gray-800);
-  background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
-    radial-gradient(circle at right center, rgba(245, 158, 11, 0.1), transparent 24%),
-    linear-gradient(180deg, #f5f7fb 0%, #e9eef7 100%);
+  background: var(--content-bg);
   line-height: 1.5;
   min-height: 100vh;
   min-height: 100dvh;
@@ -191,8 +188,8 @@ video {
 /* Utility classes */
 .card {
   background: var(--card-bg);
-  border-radius: 22px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--surface-border);
 }
 

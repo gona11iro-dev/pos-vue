@@ -120,15 +120,15 @@ app.get('/api/ventas', (req, res) => {
 });
 
 app.post('/api/ventas', (req, res) => {
-  const { date, total, client, method, paidAmount, change, items } = req.body;
+  const { date, total, client, method, paidAmount, change, items, usuario_id } = req.body;
   
   const transaction = db.transaction(() => {
     // 1. Insertar la venta
     const insertVenta = db.prepare(`
-      INSERT INTO ventas (date, total, client, method, paidAmount, change)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO ventas (date, total, client, method, paidAmount, change, usuario_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    const info = insertVenta.run(date, total, client, method, paidAmount, change);
+    const info = insertVenta.run(date, total, client, method, paidAmount, change, usuario_id || null);
     const ventaId = info.lastInsertRowid;
 
     // 2. Insertar artículos y actualizar stock
@@ -181,6 +181,24 @@ app.delete('/api/ventas/:id', (req, res) => {
 
   try {
     transaction();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Cobrar un fiado
+app.put('/api/ventas/:id/cobrar', (req, res) => {
+  const { id } = req.params;
+  const { method, paidAmount, change } = req.body;
+  
+  try {
+    const stmt = db.prepare(`
+      UPDATE ventas 
+      SET method = ?, paidAmount = ?, "change" = ?
+      WHERE id = ?
+    `);
+    stmt.run(method, paidAmount, change, id);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -342,14 +360,14 @@ app.get('/api/ventas_pollo', (req, res) => {
 });
 
 app.post('/api/ventas_pollo', (req, res) => {
-  const { date, total, client, method, paidAmount, change, items } = req.body;
+  const { date, total, client, method, paidAmount, change, items, usuario_id } = req.body;
   
   const transaction = db.transaction(() => {
     const insertVenta = db.prepare(`
-      INSERT INTO ventas_pollo (date, total, client, method, paidAmount, change)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO ventas_pollo (date, total, client, method, paidAmount, change, usuario_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    const info = insertVenta.run(date, total, client, method, paidAmount, change);
+    const info = insertVenta.run(date, total, client, method, paidAmount, change, usuario_id || null);
     const ventaId = info.lastInsertRowid;
 
     const insertItem = db.prepare(`
@@ -431,6 +449,7 @@ app.post('/api/cortes_pollo', (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
+
 
 if (shouldServeWebApp) {
   app.use(express.static(distDir));

@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.94), rgba(37, 99, 235, 0.92));
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
   color: #fff;
 }
 
@@ -347,10 +347,10 @@ onBeforeUnmount(() => {
   font-size: var(--text-xs);
 }
 
-.metric-card--emerald { background: linear-gradient(135deg, #16a34a, #15803d); }
-.metric-card--blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-.metric-card--amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.metric-card--rose { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.metric-card--emerald { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+.metric-card--blue { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+.metric-card--amber { background: linear-gradient(135deg, #b97e10, #9d5f0a); }
+.metric-card--rose { background: linear-gradient(135deg, #e84c3d, #c0392b); }
 
 .dashboard-grid {
   display: grid;

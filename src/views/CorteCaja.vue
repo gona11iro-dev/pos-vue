@@ -156,7 +156,10 @@ const resumen = computed(() => {
     const method = normalizePaymentMethod(v.method)
     if (method === 'efectivo') stats.efectivo += saleCollectedAmount(v)
     else if (method === 'tarjeta') stats.tarjeta += saleCollectedAmount(v)
-    else stats.fiado += saleCreditAmount(v)
+    else {
+      stats.fiado += saleCreditAmount(v)
+      stats.efectivo += saleCollectedAmount(v)
+    }
 
     v.items.forEach(item => {
       if (!stats.productos[item.barcode]) {

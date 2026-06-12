@@ -2,10 +2,12 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '../api/client'
 import { useProductosStore } from './productos'
+import { useAuthStore } from './auth'
 
 export const useVentasStore = defineStore('ventas', () => {
   const ventas = ref([])
   const productosStore = useProductosStore()
+  const authStore = useAuthStore()
 
   // Cargar las ventas al iniciar
   async function cargarVentas() {
@@ -27,6 +29,7 @@ export const useVentasStore = defineStore('ventas', () => {
       method: cobroData.method || 'Efectivo',
       paidAmount: cobroData.paidAmount ?? total,
       change: cobroData.change ?? 0,
+      usuario_id: authStore.userId,
       items: carrito.map(item => ({
         barcode: item.barcode,
         name: item.name,

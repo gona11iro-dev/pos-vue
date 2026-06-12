@@ -58,16 +58,6 @@
     <template v-else>
       <div class="desktop-shell">
         <div class="desktop-frame">
-          <div class="desktop-chrome">
-            <div class="chrome-traffic">
-              <span class="chrome-dot chrome-dot--red"></span>
-              <span class="chrome-dot chrome-dot--amber"></span>
-              <span class="chrome-dot chrome-dot--green"></span>
-            </div>
-            <div class="chrome-address">{{ brandName }} / {{ desktopRouteMeta.label }}</div>
-            <div class="chrome-date">{{ desktopDateLabel }}</div>
-          </div>
-
           <div class="desktop-body">
             <div v-if="isTabletView && sidebarOpen" class="desktop-sidebar-scrim" @click="sidebarOpen = false"></div>
 
@@ -106,12 +96,6 @@
                 </router-link>
               </nav>
 
-              <div class="sidebar-note">
-                <span class="sidebar-note__label">Vista actual</span>
-                <strong>{{ desktopRouteMeta.label }}</strong>
-                <p>{{ desktopRouteMeta.description }}</p>
-              </div>
-
               <div class="sidebar-footer">
                 <button class="sidebar-secondary-btn" @click="abrirCambiarPass">Cambiar contraseña</button>
                 <button class="logout-btn" @click="logout">
@@ -127,9 +111,8 @@
             <section class="desktop-stage">
               <header class="desktop-toolbar">
                 <div class="desktop-toolbar__copy">
-                  <span class="desktop-toolbar__eyebrow">{{ currentRoleLabel }}</span>
+                  <span class="desktop-toolbar__breadcrumb">{{ brandName }} <span class="breadcrumb-sep">/</span> {{ desktopRouteMeta.label }}</span>
                   <h1>{{ desktopRouteMeta.label }}</h1>
-                  <p>{{ desktopRouteMeta.helper }}</p>
                 </div>
 
                 <div class="desktop-toolbar__actions">
@@ -141,8 +124,7 @@
                     </svg>
                     <span>{{ sidebarOpen ? 'Cerrar menú' : 'Abrir menú' }}</span>
                   </button>
-                  <span class="desktop-chip">Panel local</span>
-                  <span class="desktop-chip desktop-chip--accent">{{ brandName }}</span>
+                  <span class="desktop-date">{{ desktopDateLabel }}</span>
                   <div class="desktop-user-pill">
                     <div class="desktop-user-pill__avatar">{{ userInitial }}</div>
                     <div class="desktop-user-pill__meta">
@@ -437,7 +419,7 @@ async function cambiarPassword() {
   min-height: 100dvh;
   height: 100vh;
   height: 100dvh;
-  --layout-shell-padding: 24px;
+  --layout-shell-padding: 0px;
 }
 
 .desktop-shell {
@@ -445,69 +427,17 @@ async function cambiarPassword() {
   min-height: 100dvh;
   height: 100vh;
   height: 100dvh;
-  padding: var(--layout-shell-padding);
   overflow: hidden;
 }
 
 .desktop-frame {
-  height: calc(100vh - var(--layout-shell-padding) - var(--layout-shell-padding));
-  height: calc(100dvh - var(--layout-shell-padding) - var(--layout-shell-padding));
+  height: 100vh;
+  height: 100dvh;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface-soft);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  border-radius: 32px;
+  background: var(--content-bg);
   overflow: hidden;
-  backdrop-filter: blur(22px);
-  box-shadow: var(--shadow-xl);
-}
-
-.desktop-chrome {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 18px;
-  padding: 0 22px;
-  height: 64px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(240, 245, 252, 0.78));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.chrome-traffic {
-  display: flex;
-  gap: 8px;
-}
-
-.chrome-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
-}
-
-.chrome-dot--red { background: #fb7185; }
-.chrome-dot--amber { background: #fbbf24; }
-.chrome-dot--green { background: #4ade80; }
-
-.chrome-address {
-  justify-self: center;
-  min-width: 320px;
-  padding: 10px 18px;
-  text-align: center;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  color: var(--gray-600);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.chrome-date {
-  color: var(--gray-500);
-  font-size: var(--text-sm);
-  font-weight: 700;
 }
 
 .desktop-body {
@@ -523,32 +453,31 @@ async function cambiarPassword() {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   min-height: 0;
-  padding: 24px 18px 18px;
+  padding: 20px 14px 16px;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
   overflow-y: auto;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 6px 8px 10px;
+  gap: 12px;
+  padding: 4px 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  box-shadow: 0 18px 30px rgba(37, 99, 235, 0.32);
+  background: var(--primary);
   flex-shrink: 0;
 }
 
@@ -560,8 +489,9 @@ async function cambiarPassword() {
 
 .brand-copy strong {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #fff;
 }
 
@@ -577,9 +507,9 @@ async function cambiarPassword() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -591,14 +521,20 @@ async function cambiarPassword() {
   justify-content: center;
   border-radius: 50%;
   color: #fff;
-  font-weight: 800;
-  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  font-weight: 700;
+  background: var(--primary);
 }
 
-.sidebar-profile__avatar,
+.sidebar-profile__avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
 .desktop-user-pill__avatar {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
+  font-size: 0.85rem;
   flex-shrink: 0;
 }
 
@@ -627,7 +563,7 @@ async function cambiarPassword() {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-item {
@@ -635,36 +571,21 @@ async function cambiarPassword() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid transparent;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
   color: var(--sidebar-text);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-item:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .nav-item--active {
   color: #fff;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.34), rgba(37, 99, 235, 0.12));
-  border-color: rgba(147, 197, 253, 0.24);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.nav-item--active::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 11px;
-  bottom: 11px;
-  width: 4px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #bfdbfe, #3b82f6);
+  background: var(--primary);
 }
 
 .nav-icon {
@@ -676,46 +597,17 @@ async function cambiarPassword() {
 }
 
 .nav-label {
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--text-sm);
-}
-
-.sidebar-note {
-  padding: 16px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sidebar-note__label {
-  display: inline-flex;
-  margin-bottom: 8px;
-  color: rgba(191, 219, 254, 0.92);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sidebar-note strong {
-  display: block;
-  color: #fff;
-  font-size: var(--text-lg);
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.sidebar-note p {
-  color: rgba(226, 232, 240, 0.74);
-  font-size: var(--text-sm);
-  line-height: 1.55;
 }
 
 .sidebar-footer {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-secondary-btn,
@@ -725,29 +617,34 @@ async function cambiarPassword() {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 16px;
-  font-weight: 800;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: background 0.15s ease;
 }
 
 .sidebar-secondary-btn {
-  border: 1px solid rgba(191, 219, 254, 0.22);
-  background: rgba(255, 255, 255, 0.08);
-  color: #dbeafe;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: var(--sidebar-text);
 }
 
-.sidebar-secondary-btn:hover,
-.logout-btn:hover {
-  transform: translateY(-1px);
+.sidebar-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
 }
 
 .logout-btn {
   border: none;
-  background: #fff;
-  color: #132744;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+  background: rgba(220, 38, 38, 0.16);
+  color: #fca5a5;
+}
+
+.logout-btn:hover {
+  background: rgba(220, 38, 38, 0.28);
+  color: #fecaca;
 }
 
 .desktop-stage {
@@ -756,47 +653,49 @@ async function cambiarPassword() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(250, 252, 255, 0.52), rgba(244, 247, 251, 0.96));
+  background: var(--content-bg);
   overflow: hidden;
 }
 
 .desktop-toolbar {
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 28px 30px 20px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px 28px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .desktop-toolbar__copy {
   max-width: 720px;
 }
 
-.desktop-toolbar__eyebrow {
-  display: inline-flex;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--primary-ink);
+.desktop-toolbar__breadcrumb {
+  display: block;
+  color: var(--gray-400);
   font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.breadcrumb-sep {
+  margin: 0 4px;
+  color: var(--gray-300);
 }
 
 .desktop-toolbar__copy h1 {
-  margin: 10px 0 8px;
-  font-size: 2.15rem;
+  margin-top: 2px;
+  font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
 }
 
-.desktop-toolbar__copy p {
+.desktop-date {
   color: var(--gray-500);
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .desktop-toolbar__actions {
@@ -811,43 +710,24 @@ async function cambiarPassword() {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 9px 14px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
   color: var(--primary-ink);
   font-size: var(--text-sm);
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
-}
-
-.desktop-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  color: var(--gray-600);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.desktop-chip--accent {
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--primary-ink);
 }
 
 .desktop-user-pill {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  border: 1px solid var(--surface-border);
 }
 
 .desktop-user-pill__meta strong {
@@ -899,9 +779,9 @@ async function cambiarPassword() {
   align-items: center;
   justify-content: space-between;
   padding: var(--safe-area-top) calc(20px + var(--safe-area-right)) 0 calc(20px + var(--safe-area-left));
-  background: #132744;
+  background: var(--sidebar-bg);
   color: #fff;
-  border-bottom: 2px solid var(--primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
 }
 

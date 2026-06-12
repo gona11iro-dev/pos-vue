@@ -2,10 +2,12 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { api } from '../api/client'
 import { usePollosStore } from './pollos'
+import { useAuthStore } from './auth'
 
 export const useVentasPolloStore = defineStore('ventasPollo', () => {
   const ventas = ref([])
   const pollosStore = usePollosStore()
+  const authStore = useAuthStore()
 
   async function cargarVentas() {
     try {
@@ -25,6 +27,7 @@ export const useVentasPolloStore = defineStore('ventasPollo', () => {
       method: cobroData.method || 'Efectivo',
       paidAmount: cobroData.paidAmount ?? total,
       change: cobroData.change ?? 0,
+      usuario_id: authStore.userId,
       items: carrito.map(item => ({
         id: item.id,
         nombre: item.nombre,
