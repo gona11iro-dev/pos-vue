@@ -21,10 +21,11 @@
         </div>
 
         <div v-else class="sales-list">
-          <div v-for="v in ventasFiltradas" :key="v.id" class="sale-card">
+          <div v-for="v in ventasFiltradas" :key="`${v.tipo || 'tienda'}-${v.id}`" class="sale-card">
             <div class="sale-header" @click="toggleDetails(v.id)">
               <div class="sale-main-info">
-                <span class="sale-id">#{{ v.id }}</span>
+                <span class="sale-id">#{{ v.tipo === 'polleria' ? `POLLO-${v.id}` : v.id }}</span>
+                <span v-if="v.tipo === 'polleria'" class="badge-polleria">Pollería</span>
                 <span class="sale-date">{{ formatDate(v.date) }}</span>
                 <span class="sale-client">{{ v.client || 'Público General' }}</span>
               </div>
@@ -60,11 +61,11 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in v.items" :key="item.id">
-                      <td>{{ item.name }}</td>
+                    <tr v-for="(item, idx) in v.items" :key="item.id || idx">
+                      <td>{{ item.name || item.nombre }}</td>
                       <td>{{ item.qty }}</td>
-                      <td>${{ Number(item.price).toFixed(2) }}</td>
-                      <td class="text-right">${{ (item.qty * item.price).toFixed(2) }}</td>
+                      <td>${{ Number(item.price || item.precio || 0).toFixed(2) }}</td>
+                      <td class="text-right">${{ (item.qty * (item.price || item.precio || 0)).toFixed(2) }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -78,13 +79,17 @@
                   </svg>
                   Cobrar Fiado
                 </button>
-                
+                <span v-else-if="esFiado(v) && !esFiadoPendiente(v)" class="badge-fiado-pagado">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  Fiado Pagado
+                </span>
+
                 <!-- Otros botones (solo admin) -->
                 <div v-if="authStore.isAdmin" style="display: flex; gap: 8px; margin-left: auto;">
-                  <div v-if="esFiado(v)" class="credit-note">
+                  <div v-if="esFiado(v) && esFiadoPendiente(v)" class="credit-note">
                     Pendiente: ${{ saleCreditAmount(v).toFixed(2) }}
                   </div>
-                  <button class="btn-delete" @click="confirmDelete(v.id)">
+                  <button class="btn-delete" @click="confirmDelete(v)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
@@ -239,11 +244,13 @@
 import { ref, computed, onMounted } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useVentasStore } from '../stores/ventas'
+import { useVentasPolloStore } from '../stores/ventasPollo'
 import { useAuthStore } from '../stores/auth'
 import { getLocalDateKey, normalizePaymentMethod, saleCreditAmount } from '../utils/sales'
 import { api } from '../api/client'
 
 const ventasStore = useVentasStore()
+const ventasPolloStore = useVentasPolloStore()
 const authStore = useAuthStore()
 
 const expandedId = ref(null)
@@ -253,6 +260,7 @@ const filterOptions = [
   { id: 'today', label: 'Hoy' },
   { id: 'yesterday', label: 'Ayer' },
   { id: 'credit', label: 'Fiados' },
+  { id: 'polleria', label: 'Pollería' },
   { id: 'all', label: 'Todo' }
 ]
 
@@ -260,6 +268,7 @@ const usuarios = ref([])
 
 onMounted(() => {
   ventasStore.cargarVentas()
+  ventasPolloStore.cargarVentas()
   cargarUsuarios()
 })
 
@@ -272,10 +281,19 @@ async function cargarUsuarios() {
   }
 }
 
+const todasLasVentas = computed(() => {
+  const listaTienda = (ventasStore.ventas || []).map(v => ({ ...v, tipo: v.tipo || 'tienda' }))
+  const listaPollo = (ventasPolloStore.ventas || []).map(v => ({ ...v, tipo: 'polleria' }))
+  
+  return [...listaTienda, ...listaPollo].sort((a, b) => new Date(b.date) - new Date(a.date))
+})
+
 const ventasFiltradas = computed(() => {
-  if (filterActive.value === 'all') return ventasStore.ventas
+  const lista = todasLasVentas.value
+  if (filterActive.value === 'all') return lista
+  if (filterActive.value === 'polleria') return lista.filter(v => v.tipo === 'polleria')
   if (filterActive.value === 'credit') {
-    return ventasStore.ventas.filter(v => normalizePaymentMethod(v.method) === 'fiado')
+    return lista.filter(v => normalizePaymentMethod(v.method) === 'fiado')
   }
   
   const now = new Date()
@@ -285,7 +303,7 @@ const ventasFiltradas = computed(() => {
   yesterdayDate.setDate(now.getDate() - 1)
   const yesterday = getLocalDateKey(yesterdayDate)
 
-  return ventasStore.ventas.filter(v => {
+  return lista.filter(v => {
     const vDate = getLocalDateKey(v.date)
     if (filterActive.value === 'today') return vDate === today
     if (filterActive.value === 'yesterday') return vDate === yesterday
@@ -347,7 +365,7 @@ const montoCobranza = ref(0)
 const cashEntries = ref([])
 
 const billetesMx = [1000, 500, 200, 100, 50, 20]
-const monedasMx = [20, 10, 5, 2, 1, 0.5]
+const monedasMx = [10, 5, 2, 1, 0.5]
 
 const pendingAmount = computed(() => ventaCobranza.value ? saleCreditAmount(ventaCobranza.value) : 0)
 const montoCobranzaNumero = computed(() => Number(montoCobranza.value) || 0)
@@ -408,19 +426,33 @@ async function confirmarCobranza() {
   
   const isFullyPaid = newPaidAmount >= v.total
   const methodToSave = isFullyPaid ? metodoCobranza.value : 'Fiado'
+  const esPollo = v.tipo === 'polleria'
 
   try {
-    await api.cobrarFiado(v.id, {
-      method: methodToSave,
-      paidAmount: newPaidAmount,
-      change: change
-    })
-
-    const storeV = ventasStore.ventas.find(vt => vt.id === v.id)
-    if (storeV) {
-      storeV.method = methodToSave
-      storeV.paidAmount = newPaidAmount
-      storeV.change = change
+    if (esPollo) {
+      await api.cobrarFiadoPollo(v.id, {
+        method: methodToSave,
+        paidAmount: newPaidAmount,
+        change: change
+      })
+      const storeV = ventasPolloStore.ventas.find(vt => vt.id === v.id)
+      if (storeV) {
+        storeV.method = methodToSave
+        storeV.paidAmount = newPaidAmount
+        storeV.change = change
+      }
+    } else {
+      await api.cobrarFiado(v.id, {
+        method: methodToSave,
+        paidAmount: newPaidAmount,
+        change: change
+      })
+      const storeV = ventasStore.ventas.find(vt => vt.id === v.id)
+      if (storeV) {
+        storeV.method = methodToSave
+        storeV.paidAmount = newPaidAmount
+        storeV.change = change
+      }
     }
 
     mostrarCobranza.value = false
@@ -434,28 +466,25 @@ async function confirmarCobranza() {
 
 <style scoped>
 .historial { padding: var(--space-6); background: var(--content-bg); min-height: 100%; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); }
-.header h1 { font-size: var(--text-2xl); font-weight: 800; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-4); }
+.header h1 { font-size: var(--text-2xl); font-weight: 700; color: var(--gray-900); }
 
-.filters { display: flex; gap: var(--space-2); }
+.filters { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .btn-filter { 
-  padding: 8px 16px; border: 1px solid var(--gray-200); border-radius: var(--radius-md);
-  background: #fff; cursor: pointer; font-size: var(--text-sm); font-weight: 600;
-  transition: all 0.2s;
+  padding: 8px 16px; background: #fff; border: 1px solid var(--gray-200); 
+  border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-sm);
+  color: var(--gray-600); cursor: pointer; transition: all 0.2s;
 }
 .btn-filter.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 .sales-list { display: flex; flex-direction: column; gap: var(--space-3); }
 .sale-card { background: #fff; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); overflow: hidden; box-shadow: var(--shadow-sm); }
-
-.sale-header { 
-  padding: var(--space-4) var(--space-5); display: flex; justify-content: space-between; align-items: center; 
-  cursor: pointer; transition: background 0.2s;
-}
+.sale-header { padding: var(--space-4) var(--space-5); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .sale-header:hover { background: var(--gray-50); }
 
 .sale-main-info { display: flex; align-items: center; gap: var(--space-4); }
 .sale-id { font-weight: 700; color: var(--primary); font-size: var(--text-sm); min-width: 40px; }
+.badge-polleria { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 .sale-date { color: var(--gray-500); font-size: var(--text-xs); }
 .sale-client { font-weight: 600; font-size: var(--text-sm); color: var(--gray-700); }
 
@@ -507,6 +536,12 @@ async function confirmarCobranza() {
   transition: all 0.2s;
 }
 .btn-cobrar-fiado:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.badge-fiado-pagado {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;
+  border-radius: var(--radius-md); font-weight: 700; font-size: var(--text-sm);
+}
 
 /* =============================================
    MODAL DE COBRANZA

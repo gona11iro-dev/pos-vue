@@ -87,6 +87,14 @@ export async function initNativeDB() {
         transacciones INTEGER NOT NULL DEFAULT 0,
         productos_json TEXT NOT NULL DEFAULT '[]'
       );
+      CREATE TABLE IF NOT EXISTS retiros_caja (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        monto REAL NOT NULL,
+        motivo TEXT,
+        usuario_id INTEGER,
+        created_at TEXT NOT NULL
+      );
     `;
     await db.execute(schema);
     await ensureNativeColumn('venta_items', 'unit', "TEXT DEFAULT 'pza'");

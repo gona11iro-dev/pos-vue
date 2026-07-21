@@ -108,9 +108,9 @@
               </tr>
             </thead>
             <tbody>
-              <template v-for="v in ventasFiltradas" :key="v.id">
+              <template v-for="v in ventasFiltradas" :key="`${v.tipo || 'tienda'}-${v.id}`">
                 <tr @click="toggleDetalle(v.id)" class="tr-click">
-                  <td><code class="folio">#{{ v.id }}</code></td>
+                  <td><code class="folio">#{{ v.tipo === 'polleria' ? `POLLO-${v.id}` : v.id }}</code></td>
                   <td class="td-fecha">{{ formatFecha(v.date) }}</td>
                   <td>{{ v.client || 'Público Gral.' }}</td>
                   <td>
@@ -131,7 +131,7 @@
                 <tr v-if="ventaExpandida === v.id" class="tr-detail">
                   <td colspan="9">
                     <div class="detail-panel">
-                      <p class="detail-title">Artículos de la venta #{{ v.id }}</p>
+                      <p class="detail-title">Artículos de la venta #{{ v.tipo === 'polleria' ? `POLLO-${v.id}` : v.id }}</p>
                       <table class="detail-table">
                         <thead>
                           <tr>
@@ -144,11 +144,11 @@
                         </thead>
                         <tbody>
                           <tr v-for="(item, i) in v.items" :key="i">
-                            <td><code>{{ item.barcode }}</code></td>
-                            <td>{{ item.name }}</td>
-                            <td class="td-right">${{ Number(item.price).toFixed(2) }}</td>
+                            <td><code>{{ item.barcode || 'POLLO' }}</code></td>
+                            <td>{{ item.name || item.nombre }}</td>
+                            <td class="td-right">${{ Number(item.price || item.precio || 0).toFixed(2) }}</td>
                             <td class="td-right">{{ item.qty }}</td>
-                            <td class="td-right td-total">${{ (Number(item.price) * Number(item.qty)).toFixed(2) }}</td>
+                            <td class="td-right td-total">${{ (Number(item.price || item.precio || 0) * Number(item.qty)).toFixed(2) }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -347,10 +347,30 @@ const ventaExpandida = ref(null)
 // ── Cargar datos desde el Backend SQL ─────────────────────
 async function cargar() {
   try {
-    ventas.value    = await api.getVentas()
-    productos.value = await api.getProductos()
-    usuarios.value  = await api.getUsuarios()
-    cortes.value    = await api.getCortes()
+    const [dataVentas, dataPollo, dataProd, dataUsers, dataCortes] = await Promise.all([
+      api.getVentas().catch(() => []),
+      api.getVentasPollo().catch(() => []),
+      api.getProductos().catch(() => []),
+      api.getUsuarios().catch(() => []),
+      api.getCortes().catch(() => [])
+    ])
+
+    const ventasNorm = (dataVentas || []).map(v => ({ ...v, tipo: 'tienda' }))
+    const polloNorm = (dataPollo || []).map(v => ({
+      ...v,
+      tipo: 'polleria',
+      items: (v.items || []).map(i => ({
+        ...i,
+        barcode: `POLLO-${i.id || i.pollo_id || 'P'}`,
+        name: i.nombre || i.name,
+        price: Number(i.precio || i.price || 0)
+      }))
+    }))
+
+    ventas.value    = [...ventasNorm, ...polloNorm].sort((a, b) => new Date(b.date) - new Date(a.date))
+    productos.value = dataProd || []
+    usuarios.value  = dataUsers || []
+    cortes.value    = dataCortes || []
   } catch (e) {
     console.error('[DB View] Error al cargar datos:', e)
   }

@@ -103,6 +103,15 @@ db.exec(`
     productos_json TEXT NOT NULL DEFAULT '[]'
 
   );
+
+  CREATE TABLE IF NOT EXISTS retiros_caja (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    monto REAL NOT NULL,
+    motivo TEXT,
+    usuario_id INTEGER,
+    created_at TEXT NOT NULL
+  );
 `);
 
 function ensureColumn(tableName, columnName, definition) {

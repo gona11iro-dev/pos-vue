@@ -146,6 +146,16 @@ async function handleNativeRoute(endpoint, method, body) {
     return { success: true };
   }
 
+  // Cobrar fiado de pollería
+  if (endpoint.match(/^\/ventas_pollo\/\d+\/cobrar$/) && method === 'PUT') {
+    const id = endpoint.split('/')[2];
+    await native.nativeRun(
+      'UPDATE ventas_pollo SET paidAmount = ?, method = ?, "change" = ? WHERE id = ?',
+      [body.paidAmount, body.method, body.change, id]
+    );
+    return { success: true };
+  }
+
   // Cortes de caja
   if (endpoint === '/cortes' && method === 'GET') {
     return await native.nativeQuery('SELECT * FROM cortes_caja ORDER BY corte_date DESC');
@@ -179,6 +189,29 @@ async function handleNativeRoute(endpoint, method, body) {
     );
     const corte = await native.nativeQuery('SELECT * FROM cortes_caja WHERE corte_date = ? LIMIT 1', [body.corteDate]);
     return { success: true, corte: corte?.[0] || null };
+  }
+
+  // Retiros de caja
+  if (endpoint === '/retiros' && method === 'GET') {
+    return await native.nativeQuery('SELECT * FROM retiros_caja ORDER BY created_at DESC');
+  }
+  if (endpoint.startsWith('/retiros?date=') && method === 'GET') {
+    const date = decodeURIComponent(endpoint.split('=')[1] || '');
+    return await native.nativeQuery('SELECT * FROM retiros_caja WHERE date = ? ORDER BY created_at DESC', [date]);
+  }
+  if (endpoint === '/retiros' && method === 'POST') {
+    const nowIso = new Date().toISOString();
+    await native.nativeRun(
+      `INSERT INTO retiros_caja (date, monto, motivo, usuario_id, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [body.date, Number(body.monto || 0), body.motivo || '', body.usuario_id || null, nowIso]
+    );
+    const retiros = await native.nativeQuery('SELECT * FROM retiros_caja ORDER BY created_at DESC LIMIT 1');
+    return { success: true, retiro: retiros?.[0] || null };
+  }
+  if (endpoint.match(/^\/retiros\/\d+$/) && method === 'DELETE') {
+    const id = endpoint.split('/').pop();
+    await native.nativeRun('DELETE FROM retiros_caja WHERE id = ?', [id]);
+    return { success: true };
   }
 
   // Usuarios
@@ -230,6 +263,12 @@ export const api = {
   getCortes: () => apiFetch('/cortes'),
   getCorteByDate: (date) => apiFetch(`/cortes?date=${encodeURIComponent(date)}`),
   saveCorte: (corteData) => apiFetch('/cortes', { method: 'POST', body: corteData }),
+
+  // Retiros de caja
+  getRetiros: () => apiFetch('/retiros'),
+  getRetirosByDate: (date) => apiFetch(`/retiros?date=${encodeURIComponent(date)}`),
+  saveRetiro: (retiroData) => apiFetch('/retiros', { method: 'POST', body: retiroData }),
+  deleteRetiro: (id) => apiFetch(`/retiros/${id}`, { method: 'DELETE' }),
   
   // Pollos
   getPollos: () => apiFetch('/pollos'),
@@ -240,6 +279,7 @@ export const api = {
   getVentasPollo: () => apiFetch('/ventas_pollo'),
   registerVentaPollo: (ventaData) => apiFetch('/ventas_pollo', { method: 'POST', body: ventaData }),
   deleteVentaPollo: (id) => apiFetch(`/ventas_pollo/${id}`, { method: 'DELETE' }),
+  cobrarFiadoPollo: (id, cobroData) => apiFetch(`/ventas_pollo/${id}/cobrar`, { method: 'PUT', body: cobroData }),
 
   // Cortes Pollo
   getCortesPollo: () => apiFetch('/cortes_pollo'),

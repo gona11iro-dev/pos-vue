@@ -205,6 +205,52 @@ app.put('/api/ventas/:id/cobrar', (req, res) => {
   }
 });
 
+// ── Retiros de caja ────────────────────────────────────────────────
+app.get('/api/retiros', (req, res) => {
+  const { date } = req.query;
+  try {
+    if (date) {
+      const retiros = db.prepare('SELECT * FROM retiros_caja WHERE date = ? ORDER BY created_at DESC').all(date);
+      return res.json(retiros);
+    }
+    const retiros = db.prepare('SELECT * FROM retiros_caja ORDER BY created_at DESC').all();
+    return res.json(retiros);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/retiros', (req, res) => {
+  const { date, monto, motivo, usuario_id } = req.body;
+
+  if (!date || !monto) {
+    return res.status(400).json({ error: 'date y monto son requeridos' });
+  }
+
+  try {
+    const nowIso = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO retiros_caja (date, monto, motivo, usuario_id, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const info = stmt.run(date, Number(monto), motivo || '', usuario_id || null, nowIso);
+    const retiro = db.prepare('SELECT * FROM retiros_caja WHERE id = ?').get(info.lastInsertRowid);
+    return res.json({ success: true, retiro });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/retiros/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare('DELETE FROM retiros_caja WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Cortes de caja ────────────────────────────────────────────────
 app.get('/api/cortes', (req, res) => {
   const { date } = req.query;
@@ -385,6 +431,24 @@ app.post('/api/ventas_pollo', (req, res) => {
   try {
     const id = transaction();
     res.json({ success: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Cobrar un fiado de pollería
+app.put('/api/ventas_pollo/:id/cobrar', (req, res) => {
+  const { id } = req.params;
+  const { method, paidAmount, change } = req.body;
+
+  try {
+    const stmt = db.prepare(`
+      UPDATE ventas_pollo 
+      SET method = ?, paidAmount = ?, change = ?
+      WHERE id = ?
+    `);
+    stmt.run(method, paidAmount, change, id);
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

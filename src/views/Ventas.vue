@@ -598,7 +598,7 @@ const clienteNombre = ref('')
 const paymentMethod = ref(PAYMENT_METHODS.CASH)
 const cashEntries = ref([])
 const billetesMx = [1000, 500, 200, 100, 50, 20]
-const monedasMx = [20, 10, 5, 2, 1, 0.5]
+const monedasMx = [10, 5, 2, 1, 0.5]
 const montoRecibidoNumero = computed(() => Number(montoRecibido.value) || 0)
 const esPagoEfectivo = computed(() => paymentMethod.value === PAYMENT_METHODS.CASH)
 const esPagoTarjeta = computed(() => paymentMethod.value === PAYMENT_METHODS.CARD)

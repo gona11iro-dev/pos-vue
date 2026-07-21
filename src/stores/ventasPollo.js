@@ -11,7 +11,16 @@ export const useVentasPolloStore = defineStore('ventasPollo', () => {
 
   async function cargarVentas() {
     try {
-      ventas.value = await api.getVentasPollo() || []
+      const data = await api.getVentasPollo() || []
+      ventas.value = data.map(v => ({
+        ...v,
+        tipo: 'polleria',
+        items: (v.items || []).map(i => ({
+          ...i,
+          name: i.nombre || i.name,
+          price: Number(i.precio || i.price || 0)
+        }))
+      }))
     } catch (e) {
       console.error('[VentasPollo] Error al cargar:', e)
     }
@@ -39,6 +48,12 @@ export const useVentasPolloStore = defineStore('ventasPollo', () => {
     try {
       const result = await api.registerVentaPollo(ticket)
       ticket.id = result.id
+      ticket.tipo = 'polleria'
+      ticket.items = ticket.items.map(i => ({
+        ...i,
+        name: i.nombre,
+        price: Number(i.precio)
+      }))
       ventas.value.unshift(ticket)
       return ticket
     } catch (e) {

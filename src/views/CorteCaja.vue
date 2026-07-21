@@ -7,6 +7,12 @@
           <p class="subtitle">{{ currentDate }}</p>
         </div>
         <div class="actions">
+          <button class="btn-retiro" @click="abrirRetiro">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M2 12h4M18 12h4"></path>
+            </svg>
+            Retirar dinero
+          </button>
           <button class="btn-corte" :disabled="savingCorte" @click="guardarCorteDiario">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -25,6 +31,7 @@
       </div>
       <p v-if="corteGuardadoMsg" class="save-msg">{{ corteGuardadoMsg }}</p>
       <p v-if="corteErrorMsg" class="error-msg">{{ corteErrorMsg }}</p>
+      <p v-if="retiroErrorMsg" class="error-msg">{{ retiroErrorMsg }}</p>
 
       <div class="summary-grid">
         <div class="card stat-card">
@@ -46,8 +53,9 @@
             </svg>
           </div>
           <div class="stat-info">
-            <span class="stat-label">Efectivo</span>
-            <span class="stat-value">${{ resumen.efectivo.toFixed(2) }}</span>
+            <span class="stat-label">Efectivo en caja</span>
+            <span class="stat-value">${{ efectivoDisponible.toFixed(2) }}</span>
+            <span v-if="totalRetirosHoy > 0" class="stat-sublabel">Ventas: ${{ resumen.efectivo.toFixed(2) }} − Retiros: ${{ totalRetirosHoy.toFixed(2) }}</span>
           </div>
         </div>
 
@@ -110,6 +118,56 @@
             </table>
           </div>
         </div>
+
+        <div class="card table-card">
+          <h2>Retiros de Caja de Hoy</h2>
+          <div class="report-table-wrap">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Motivo</th>
+                  <th class="text-right">Monto</th>
+                  <th class="text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="retirosHoy.length === 0">
+                  <td colspan="4" class="empty-row">No se han registrado retiros hoy.</td>
+                </tr>
+                <tr v-for="r in retirosHoy" :key="r.id">
+                  <td>{{ formatHora(r.created_at) }}</td>
+                  <td>{{ r.motivo || '—' }}</td>
+                  <td class="text-right">${{ Number(r.monto).toFixed(2) }}</td>
+                  <td class="text-right">
+                    <button class="btn-eliminar-retiro" @click="eliminarRetiro(r)">Eliminar</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="mostrarRetiro" class="modal-overlay" @click.self="mostrarRetiro = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Retirar dinero de la caja</h3>
+        </div>
+        <div class="modal-body">
+          <label class="field-label">Monto a retirar</label>
+          <input type="number" min="0" step="0.5" v-model="montoRetiro" class="field-input" placeholder="0.00" />
+
+          <label class="field-label">¿En qué se usará? (motivo)</label>
+          <input type="text" v-model="motivoRetiro" class="field-input" placeholder="Ej: Compra de bolsas, pago a proveedor..." />
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancelar" @click="mostrarRetiro = false">Cancelar</button>
+          <button class="btn-success" :disabled="!puedeRetirar || guardandoRetiro" @click="confirmarRetiro">
+            {{ guardandoRetiro ? 'Guardando...' : 'Confirmar retiro' }}
+          </button>
+        </div>
       </div>
     </div>
   </AppLayout>
@@ -119,14 +177,23 @@
 import { computed, onMounted, ref } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import { useVentasStore } from '../stores/ventas'
+import { useVentasPolloStore } from '../stores/ventasPollo'
 import { exportToCsv } from '../utils/export'
 import { api } from '../api/client'
 import { getLocalDateKey, isSaleOnDate, normalizePaymentMethod, saleCollectedAmount, saleCreditAmount, saleTotal } from '../utils/sales'
 
 const ventasStore = useVentasStore()
+const ventasPolloStore = useVentasPolloStore()
 const savingCorte = ref(false)
 const corteGuardadoMsg = ref('')
 const corteErrorMsg = ref('')
+
+const retiros = ref([])
+const retiroErrorMsg = ref('')
+const mostrarRetiro = ref(false)
+const montoRetiro = ref('')
+const motivoRetiro = ref('')
+const guardandoRetiro = ref(false)
 
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('es-MX', { 
@@ -136,10 +203,80 @@ const currentDate = computed(() => {
 
 onMounted(() => {
   ventasStore.cargarVentas()
+  ventasPolloStore.cargarVentas()
+  cargarRetiros()
 })
 
+async function cargarRetiros() {
+  try {
+    retiros.value = await api.getRetirosByDate(getLocalDateKey())
+  } catch (error) {
+    console.error('Error al cargar retiros:', error)
+  }
+}
+
+const retirosHoy = computed(() => {
+  const hoy = getLocalDateKey()
+  return (retiros.value || []).filter(r => r.date === hoy)
+})
+
+const totalRetirosHoy = computed(() => {
+  return retirosHoy.value.reduce((sum, r) => sum + (Number(r.monto) || 0), 0)
+})
+
+const efectivoDisponible = computed(() => {
+  return Math.max(resumen.value.efectivo - totalRetirosHoy.value, 0)
+})
+
+const puedeRetirar = computed(() => Number(montoRetiro.value) > 0)
+
+function formatHora(isoString) {
+  if (!isoString) return '—'
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+}
+
+function abrirRetiro() {
+  montoRetiro.value = ''
+  motivoRetiro.value = ''
+  retiroErrorMsg.value = ''
+  mostrarRetiro.value = true
+}
+
+async function confirmarRetiro() {
+  if (!puedeRetirar.value) return
+  guardandoRetiro.value = true
+  retiroErrorMsg.value = ''
+  try {
+    await api.saveRetiro({
+      date: getLocalDateKey(),
+      monto: Number(montoRetiro.value),
+      motivo: motivoRetiro.value.trim()
+    })
+    await cargarRetiros()
+    mostrarRetiro.value = false
+  } catch (error) {
+    retiroErrorMsg.value = `No se pudo registrar el retiro: ${error.message || 'error desconocido'}`
+  } finally {
+    guardandoRetiro.value = false
+  }
+}
+
+async function eliminarRetiro(retiro) {
+  if (!confirm(`¿Eliminar el retiro de $${Number(retiro.monto).toFixed(2)}?`)) return
+  try {
+    await api.deleteRetiro(retiro.id)
+    await cargarRetiros()
+  } catch (error) {
+    retiroErrorMsg.value = `No se pudo eliminar el retiro: ${error.message || 'error desconocido'}`
+  }
+}
+
 const resumen = computed(() => {
-  const ventasHoy = ventasStore.ventas.filter(v => isSaleOnDate(v))
+  const ventasHoyTienda = (ventasStore.ventas || []).filter(v => isSaleOnDate(v))
+  const ventasHoyPollo = (ventasPolloStore.ventas || []).filter(v => isSaleOnDate(v))
+  const ventasHoy = [...ventasHoyTienda, ...ventasHoyPollo]
   
   const stats = {
     total: 0,
@@ -161,12 +298,17 @@ const resumen = computed(() => {
       stats.efectivo += saleCollectedAmount(v)
     }
 
-    v.items.forEach(item => {
-      if (!stats.productos[item.barcode]) {
-        stats.productos[item.barcode] = { barcode: item.barcode, name: item.name, qty: 0, total: 0 }
+    (v.items || []).forEach(item => {
+      const code = item.barcode || `pollo_${item.id || item.nombre || item.name}`
+      const name = item.name || item.nombre || 'Pollo'
+      const price = Number(item.price || item.precio || 0)
+      const qty = Number(item.qty || 0)
+
+      if (!stats.productos[code]) {
+        stats.productos[code] = { barcode: code, name: name, qty: 0, total: 0 }
       }
-      stats.productos[item.barcode].qty += Number(item.qty)
-      stats.productos[item.barcode].total += (Number(item.qty) * Number(item.price))
+      stats.productos[code].qty += qty
+      stats.productos[code].total += (qty * price)
     })
   })
 
@@ -238,6 +380,15 @@ async function guardarCorteDiario() {
   cursor: pointer; transition: all 0.2s;
 }
 .actions .btn-download:hover { background: var(--success-dark); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+.btn-retiro {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px; background: #fff; color: var(--gray-700);
+  border: 2px solid var(--gray-200); border-radius: var(--radius-md); font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-retiro:hover { background: var(--gray-50); border-color: var(--gray-300); transform: translateY(-2px); }
+
 .save-msg { margin-top: -10px; margin-bottom: 14px; color: var(--success-dark); font-weight: 700; }
 .error-msg { margin-top: -10px; margin-bottom: 14px; color: var(--danger); font-weight: 700; }
 
@@ -260,8 +411,9 @@ async function guardarCorteDiario() {
 .stat-info { display: flex; flex-direction: column; }
 .stat-label { font-size: var(--text-sm); font-weight: 600; color: var(--gray-500); }
 .stat-value { font-size: var(--text-2xl); font-weight: 800; color: var(--gray-900); }
+.stat-sublabel { font-size: var(--text-xs); color: var(--gray-400); margin-top: 2px; }
 
-.tables-section { max-width: 900px; margin: 0 auto; }
+.tables-section { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
 .table-card { padding: var(--space-6); }
 .table-card h2 { font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-5); color: var(--gray-800); }
 .report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -273,6 +425,39 @@ async function guardarCorteDiario() {
 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--gray-50); }
+
+.empty-row { text-align: center; color: var(--gray-400); padding: 20px 12px; }
+
+.btn-eliminar-retiro {
+  padding: 6px 12px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;
+  border-radius: var(--radius-md); font-weight: 700; font-size: var(--text-xs); cursor: pointer; transition: all 0.2s;
+}
+.btn-eliminar-retiro:hover { background: #fee2e2; border-color: #fca5a5; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: var(--space-4);
+}
+.modal-content { background: #fff; border-radius: var(--radius-xl); width: 100%; max-width: 420px; overflow: hidden; box-shadow: var(--shadow-lg); }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); }
+.modal-header h3 { font-size: var(--text-lg); font-weight: 800; color: var(--gray-900); }
+.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.field-label { font-size: var(--text-sm); font-weight: 700; color: var(--gray-600); }
+.field-input {
+  padding: 12px 14px; border: 2px solid var(--gray-200); border-radius: var(--radius-md);
+  font-size: var(--text-base); width: 100%; margin-top: -8px; transition: border-color 0.2s;
+}
+.field-input:focus { outline: none; border-color: var(--primary); }
+.modal-footer { padding: 20px 24px; background: #fafafa; border-top: 1px solid var(--gray-200); display: flex; gap: 12px; }
+.btn-cancelar { flex: 1; padding: 14px; background: #fff; border: 2px solid var(--gray-200); border-radius: 12px; font-weight: 700; color: var(--gray-600); cursor: pointer; transition: all 0.2s; }
+.btn-cancelar:hover { background: var(--gray-50); border-color: var(--gray-300); }
+.btn-success {
+  flex: 2; padding: 14px; background: var(--success); color: #fff; border: none; border-radius: 12px;
+  font-weight: 800; font-size: 1.05rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;
+  transition: all 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.2);
+}
+.btn-success:hover:not(:disabled) { background: var(--success-dark); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(22,163,74,0.3); }
+.btn-success:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 @media (max-width: 1080px) {
   .corte-caja { padding: var(--space-6); }
